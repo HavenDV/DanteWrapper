@@ -41,5 +41,11 @@ namespace DanteWrapperLibrary.Tests
                 Console.WriteLine(name);
             }
         }
+
+        [TestMethod]
+        public void AddTxLabelTest()
+        {
+            DanteRouting.AddTxLabel("DESKTOP-VSC", 3, "TEST-LABEL");
+        }
     }
 }
