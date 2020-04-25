@@ -5,7 +5,7 @@ namespace DanteWrapperLibrary
 {
     public class DanteBrowsing
     {
-        [DllImport("../../../Dependencies/dante_browsing_test.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("../../../../Dependencies/dante_browsing_test.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern int test(int argc, [In, Out] string[] argv);
 
         public static IList<string> GetNames()
