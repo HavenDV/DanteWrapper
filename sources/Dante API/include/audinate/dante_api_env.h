@@ -1,0 +1,7 @@
+#ifndef _AUDINATE_DANTE_API_ENV_H
+#define _AUDINATE_DANTE_API_ENV_H
+
+
+#define DAPI_ENV_HAS_CMM AUD_ENV_HAS_CMM
+
+#endif
