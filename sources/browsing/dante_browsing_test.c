@@ -654,7 +654,10 @@ __declspec(dllexport) int GetDeviceNames
 	STRSAFE_LPSTR temp;
 	const size_t alloc_size = sizeof(char) * 101;
 
-	dapi_utils_step(test.runtime, AUD_SOCKET_INVALID, NULL);
+	for (size_t i = 0; i < 15; i++)
+	{
+		dapi_utils_step(test.runtime, AUD_SOCKET_INVALID, NULL);
+	}
 
 
 
