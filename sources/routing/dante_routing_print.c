@@ -470,7 +470,7 @@ dr_test_print_device_txchannels
 		dante_id_t id = dr_txchannel_get_id(txc);
 		if (dr_txchannel_is_stale(txc))
 		{
-			SNPRINTF(line, maxLineSize, "  %*d %*s %*s %*s %*s %*s\n",
+			SNPRINTF(line, maxLineSize, "  %*d %*s %*s %*s %*s %*s",
 				-ID_FIELD_WIDTH,      id,
 				-NAME_FIELD_WIDTH,    "?",
 				-FORMAT_FIELD_WIDTH,  "?",
@@ -504,7 +504,7 @@ dr_test_print_device_txchannels
 				dr_test_print_formats(dr_txchannel_get_formats(txc), format, sizeof(format));
 			}
 			
-			SNPRINTF(line, maxLineSize, "  %*d %*s %*s %*s %*s %+*d\n",
+			SNPRINTF(line, maxLineSize, "  %*d %*s %*s %*s %*s %+*d",
 				-ID_FIELD_WIDTH,      id,
 				-NAME_FIELD_WIDTH,    name,
 				-FORMAT_FIELD_WIDTH,  format,
@@ -568,7 +568,7 @@ dr_test_print_device_rxchannels
 		dante_id_t id = dr_rxchannel_get_id(rxc);
 		if (dr_rxchannel_is_stale(rxc))
 		{
-			SNPRINTF(line, maxLineSize, "  %*d %*s %*s %*s %*s %*s %*s %*s %*s\n",
+			SNPRINTF(line, maxLineSize, "  %*d %*s %*s %*s %*s %*s %*s %*s %*s",
 				-ID_FIELD_WIDTH,           id,
 				-NAME_FIELD_WIDTH,         "?",
 				-FORMAT_FIELD_WIDTH,       "?",
@@ -653,7 +653,7 @@ dr_test_print_device_rxchannels
 			}
 			
 
-			SNPRINTF(line, maxLineSize, "  %*d %*s %*s %*s %*s %+*d %*s %*s %*s\n",
+			SNPRINTF(line, maxLineSize, "  %*d %*s %*s %*s %*s %+*d %*s %*s %*s",
 				-ID_FIELD_WIDTH,           id,
 				-NAME_FIELD_WIDTH,         name,
 				-FORMAT_FIELD_WIDTH,       format_buf,
@@ -705,7 +705,7 @@ dr_test_print_channel_txlabels
 				const int maxLineSize = 4096;
 				char line[4096];
 
-				SNPRINTF(line, maxLineSize, "NO DATA for channel %u\n", c+1);
+				SNPRINTF(line, maxLineSize, "NO DATA for channel %u", c+1);
 
 				copy_to_output_array(channel_id, line, array, count);
 			}
@@ -736,7 +736,6 @@ dr_test_print_channel_txlabels
 	{
 		SNPRINTF(line + strlen(line), maxLineSize, " \"%s\"", g_test_labels[c].name);
 	}
-	SNPRINTF(line + strlen(line), maxLineSize, "\n");
 
 	copy_to_output_array(channel_id, line, array, count);
 }
