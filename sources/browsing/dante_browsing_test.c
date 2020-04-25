@@ -16,6 +16,9 @@
 #include <signal.h>
 #include <ctype.h>
 
+// Used by .Net Wrapper
+#include <strsafe.h>
+
 #ifdef WIN32
 #pragma warning(disable: 4996)
 #endif
@@ -479,494 +482,27 @@ void db_test_event_handle_ddh_changes
 #endif
 }
 
-//----------------------------------------------------------
-// Main functionality
-//----------------------------------------------------------
-
-#if 0
-static aud_error_t step(db_browse_test_t * test, aud_socket_t test_socket, dante_sockets_t * select_sockets)
-{
-	dante_sockets_t temp_sockets;
-	if (!select_sockets)
-	{
-		select_sockets = &temp_sockets;
-	}
-
-	int select_result;
-	struct timeval timeout;
-	aud_error_t result = AUD_SUCCESS;
-
-	// prepare sockets and timeouts
-	timeout.tv_sec = 0;
-	timeout.tv_usec = 500000;
-
-	dante_sockets_clear(select_sockets);
-	if (test_socket != AUD_SOCKET_INVALID)
-	{
-		dante_sockets_add_read(select_sockets, test_socket);
-	}
-	result = dante_runtime_get_sockets_and_timeout(test->runtime, select_sockets, &timeout);
-	if (result != AUD_SUCCESS)
-	{
-		DB_TEST_ERROR("Failed to get Dante sockets and timeout: %s\n", aud_error_message(result, test->errbuf));
-	}
-	if (timeout.tv_sec >= 1)
-	{
-		timeout.tv_sec = 1;
-		timeout.tv_usec = 0;
-	}
-
-	// drive select loop
-	select_result = select(select_sockets->n, &select_sockets->read_fds, &select_sockets->write_fds, NULL, &timeout);
-
-	if (select_result < 0)
-	{
-		result = aud_error_get_last();
-		if (result != AUD_ERR_INTERRUPTED)
-		{
-			DB_TEST_ERROR("Error select()ing: %s\n", aud_error_message(result, test->errbuf));
-		}
-	}
-	else
-	{
-		result = dante_runtime_process_with_sockets(test->runtime, select_sockets);
-		if (result != AUD_SUCCESS)
-		{
-			DB_TEST_ERROR("Error processing: %s\n", aud_error_message(result, test->errbuf));
-		}
-
-	}
-	return result;
-}
-#endif
-
-static char *
-drop_whitespace(const char * buf)
-{
-	while(isspace(buf[0]))
-		buf++;
-	return (char *) buf;
-}
-
-#if DAPI_ENVIRONMENT == DAPI_ENVIRONMENT__STANDALONE
-static size_t
-copy_input_string
-(
-	const char * src,
-	char * dst,
-	size_t dstlen,
-	char ** tail,
-	aud_bool_t * ok
-)
-{
-	unsigned i = 0, i_dst = 0;
-	aud_bool_t quoted = AUD_FALSE;
-	aud_bool_t escaped = AUD_FALSE;
-	if (src[0] == '"')
-	{
-		quoted = AUD_TRUE;
-		i++;
-	}
-
-	for (; src[i]; i++)
-	{
-		char ch = src[i];
-
-		// Handle exceptions
-		if (escaped)
-		{
-			escaped = AUD_FALSE;
-			// Escaped characters are never exceptional
-		}
-		else
-		{
-			if (ch == '\\')
-			{
-				escaped = AUD_TRUE;
-				continue;
-			}
-			else if (ch == '"')
-			{
-				i++;
-					// Absorb the quote
-				quoted = ! quoted;
-				goto l__end;
-			}
-			else if (! quoted && isspace(ch))
-			{
-				goto l__end;
-			}
-		}
-
-		if (dst && i_dst + 1 < dstlen)
-		{
-			dst[i_dst] = ch;
-		}
-		i_dst++;
-	}
-
-l__end:
-	if (tail)
-	{
-		*tail = (char *) src + i;
-	}
-	if (ok)
-	{
-		*ok = ! quoted;
-			// if quoted on exist, then have format error
-	}
-	if (dst)
-	{
-		if (i_dst < dstlen)
-		{
-			dst[i_dst] = 0;
-		}
-		else if (dstlen)
-		{
-			dst[dstlen - 1] = 0;
-		}
-	}
-	return i_dst;
-}
-
-static void
-set_domain_for_string
-(
-	db_browse_test_t * test,
-	const char * domain_str
-)
-{
-	aud_error_t result;
-	if (domain_str[0] == 0)
-	{
-		printf("Error: empty domain");
-	}
-	else if (strcmp(domain_str, ".") == 0 ||
-		strcmp(domain_str, "ADHOC") == 0 ||
-		strcmp(domain_str, "<ADHOC>") == 0
-	)
-	{
-		result = dante_domain_handler_set_current_domain_by_uuid(test->handler, DANTE_DOMAIN_UUID_ADHOC);
-		if (result != AUD_SUCCESS)
-		{
-			printf("Error setting domain to ADHOC");
-		}
-		else
-		{
-			printf("Browsing in ADHOC domain");
-			strcpy(test->lastDomain, "");
-		}
-	}
-	else
-	{
-		dante_domain_info_t domain_info =
-			dante_domain_handler_available_domain_with_name(test->handler, domain_str);
-		if (domain_info.id)
-		{
-			result = dante_domain_handler_set_current_domain_by_id(test->handler, domain_info.id);
-			if (result != AUD_SUCCESS)
-			{
-				printf("Error setting domain to '%s'", domain_str);
-			}
-			else
-			{
-				printf("Browsing in domain '%s'", domain_str);
-				strcpy(test->lastDomain, domain_str);
-			}
-		}
-		else
-		{
-			printf("Unable to find domain '%s'\n", domain_str);
-		}
-	}
-}
-#endif
-
-static void
-db_browse_test_print_input_help(const db_browse_test_t * test)
-{
-	(void) test;
-
-	puts("Input options:\n"
-		"r d <name>   Reconfirm device\n"
-		"r d          Reconfirm all devices\n"
-		"r b          Rediscover missing devices\n"
-		"r r <name>   Re-resolve device\n"
-#if DAPI_ENVIRONMENT == DAPI_ENVIRONMENT__STANDALONE
-		"d <domain>   Set current domain\n"
-#endif
-		"p            Print discovery count of AES67 descriptors\n"
-		"x [0|1|r]    Stop / start / restart current browse\n"
-		"ad <seconds> Set adhoc startup delay\n"
-		"?, h         Show this help\n"
-	);
-}
-
 static aud_error_t
-db_browse_test_process_line(db_browse_test_t * test, char * buf_in)
+db_browse_test_process_line(db_browse_test_t * test)
 {
 	aud_error_t result;
-	char in_action, in_type;
-	char in_name[64];
-	int n_scan;
 
-	// drop leading whitespace
-	char * buf = drop_whitespace(buf_in);
-	if (! buf[0])
+	unsigned int i;
+	const db_browse_network_t* network = db_browse_get_network(test->browse);
+	for (i = 0; i < db_browse_network_get_num_devices(network); i++)
 	{
-		// empty input
-		return AUD_SUCCESS;
-	}
-
-	/* NOTE:
-		Reconfirm / rediscover / re-resolve create load on the local processor
-		and on all Dante devices on the network.  Use sparingly.
-	 */
-
-	if (sscanf(buf, "%c %c %s", &in_action, &in_type, in_name) == 3 && in_action == 'r' && in_type == 'd')
-	{
-		/*
-			Reconfirm checks that a previously known device record is still active.
-
-			Use this when a device appears in the browsing API but cannot be communicated with.
-		 */
-		const db_browse_network_t * network = db_browse_get_network(test->browse);
-		db_browse_device_t * device = db_browse_network_device_with_name(network, in_name);
-		if (!device)
-		{
-			printf("Unknown device '%s'\n", in_name);
-			return AUD_SUCCESS;
-		}
+		db_browse_device_t* device = db_browse_network_device_at_index(network, i);
+		const char* name = db_browse_device_get_name(device);
 		result = db_browse_device_reconfirm(device, 0, AUD_FALSE);
 		if (result != AUD_SUCCESS)
 		{
-			printf("Error reconfirming device '%s': %s\n", in_name, aud_error_message(result, test->errbuf));
-			//return result;
-		}
-		printf("Reconfirming device '%s'\n", in_name);
-	}
-	else if (sscanf(buf, "%c %c", &in_action, &in_type) == 2 && in_action == 'r' && in_type == 'd')
-	{
-		unsigned int i;
-		const db_browse_network_t * network = db_browse_get_network(test->browse);
-		for (i = 0; i < db_browse_network_get_num_devices(network); i++)
-		{
-			db_browse_device_t * device = db_browse_network_device_at_index(network, i);
-			const char * name = db_browse_device_get_name(device);
-			result = db_browse_device_reconfirm(device, 0, AUD_FALSE);
-			if (result != AUD_SUCCESS)
-			{
-				printf("Error reconfirming device '%s': %s\n", name, aud_error_message(result, test->errbuf));
-				//return result;
-			}
-			printf("Reconfirming device '%s'\n", name);
-		}
-	}
-	else if (sscanf(buf, "%c %c", &in_action, &in_type) == 2 && in_action == 'r' && in_type == 'b')
-	{
-		/*
-			Rediscover prompts all devices to re-send their discovery information,
-			attempting to discover missing devices.
-		 */
-		result = db_browse_rediscover(test->browse, 0);
-		if (result != AUD_SUCCESS)
-		{
-			printf("Error rediscovering devices: %s\n", aud_error_message(result, test->errbuf));
+			printf("Error reconfirming device '%s': %s\n", name, aud_error_message(result, test->errbuf));
 			return result;
 		}
-		printf("Rediscovering missing devices\n");
-	}
-	else if (sscanf(buf, "%c %c %s", &in_action, &in_type, in_name) == 3 && in_action == 'r' && in_type == 'r')
-	{
-		/*
-			Re-resolve updates addressing and related information for a discovered device
-		 */
-		const db_browse_network_t * network = db_browse_get_network(test->browse);
-		db_browse_device_t * device = db_browse_network_device_with_name(network, in_name);
-		if (!device)
-		{
-			printf("Unknown device '%s'\n", in_name);
-			return AUD_SUCCESS;
-		}
-		printf("Re-resolving device %s\n", in_name);
-		result = db_browse_device_reresolve(device, 0);
-		if (result != AUD_SUCCESS)
-		{
-			printf("Error re-resolving devices: %s\n", aud_error_message(result, test->errbuf));
-			//return result;
-		}
-		else{
-			printf("Re-resolved device '%s'\n",in_name);
-		}
-	}
-#if DAPI_ENVIRONMENT == DAPI_ENVIRONMENT__STANDALONE
-	else if (buf[0] == 'd')
-	{
-		char * tail = drop_whitespace(buf + 1);
-		if (! tail[0])
-		{
-			unsigned i, n = dante_domain_handler_num_available_domains(test->handler);
-			dante_domain_info_t current = dante_domain_handler_get_current_domain(test->handler);
-			printf("Current domain: %s\n", aud_str_is_non_empty(current.name) ? current.name : "ADHOC");
-			printf("Available domains: %u\n", n);
-			for (i = 0; i < n; i++)
-			{
-				dante_domain_info_t domain_info =
-					dante_domain_handler_available_domain_at_index(test->handler, i);
-				if (domain_info.name[0])
-				{
-					printf("\t%s\n", domain_info.name);
-				}
-				else
-				{
-					printf("\tADHOC\n");
-				}
-			}
-		}
-		else if (! isspace(buf[1]))
-		{
-			printf("Invalid operation '%s'\n", buf);
-		}
-		else
-		{
-			aud_bool_t ok;
-			char * tail2;
-			size_t len = copy_input_string(tail, in_name, 64, &tail2, &ok);
-			if (! ok)
-			{
-				printf("Bad quoting: '%s'\n", tail);
-			}
-			else if (len >= 64)
-			{
-				printf("Input name too long: '%s...'\n", in_name);
-			}
-			else if (drop_whitespace(tail2)[0])
-			{
-				printf("Extra arguments: '%s'\n", tail2);
-			}
-			else
-			{
-				set_domain_for_string(test, in_name);
-			}
-		}
-	}
-#endif
-	else if (buf[0] == 'p')
-	{
-		unsigned n = db_browse_get_num_sdp_descriptors(test->browse);
-		if (n == 0)
-		{
-			fputs("No AES67 flows discovered\n", stdout);
-		}
-		else
-		{
-			unsigned i;
-			for (i = 0; i < n; i++)
-			{
-				const dante_sdp_descriptor_t * sdp =
-					db_browse_sdp_descriptor_at_index(test->browse, i);
 
-				db_test_print_sdp_descriptor(sdp);
-				putchar('\n');
-			}
-		}
+		printf("Reconfirming device '%s'\n", name);
 	}
-	else if (buf[0] == 'x')
-	{
-		aud_bool_t to_stop = AUD_FALSE, to_start = AUD_FALSE;
-		n_scan = sscanf(buf + 1, " %c", &in_type);
-		if (n_scan > 0)
-		{
-			switch(in_type)
-			{
-			case '0':
-				to_stop = AUD_TRUE;
-				break;
-			case '1':
-				to_start = AUD_TRUE;
-				break;
-			case 'r':
-				to_stop = AUD_TRUE;
-				to_start = AUD_TRUE;
-				break;
-			default:
-				printf("Unknown stop / start operation: '%s'\n"
-					"  Input must be 'x [0|1|r]'\n"
-					, buf
-				);
-				return AUD_SUCCESS;
-					// success => keep handling inputs
-			}
-		}
-		if (to_stop)
-		{
-			fputs("Stopping browse: ", stdout);
-			if (test->running)
-			{
-				db_browse_stop(test->browse);
-				puts("stopped");
-				test->running = AUD_FALSE;
-			}
-			else
-			{
-				puts("not started");
-			}
-		}
-		if (to_start)
-		{
-			fputs("Starting browse: ", stdout);
-			if (test->running)
-			{
-				puts("already started");
-			}
-			else
-			{
-				result = db_browse_start_config(test->browse, &test->browse_config);
-				if (result == AUD_SUCCESS)
-				{
-					puts("started");
-					test->running = AUD_TRUE;
-				}
-				else
-				{
-					printf("failed: %d\n", result);
-				}
-			}
-		}
-		printf("Browse is %s\n", (test->running ? "started" : "stopped"));
-	}
-	else if (buf[0] == 'a' && buf[1] == 'd')
-	{
-		/*
-			Sets the delay when switching from managed domain to adhoc.
 
-			This is only required when supporting browsing in domains on certain
-			embedded platforms (e.g. BK-II or Broadway), and works around
-			a possible stall due to processing load when re-entering adhoc mode.
-			Only other platforms, it can be safely left at 0.
-		 */
-		unsigned adhoc_delay;
-		n_scan = sscanf(buf, "ad %u", &adhoc_delay);
-		if (n_scan != 1)
-		{
-			puts("To set adhoc startup delay, use: ad <delay>");
-			return AUD_SUCCESS;
-		}
-		printf("Setting adhoc startup delay to %u\n", adhoc_delay);
-		db_browse_set_adhoc_startup_delay(test->browse, (uint32_t) adhoc_delay);
-	}
-#ifdef DANTE_BROWSING_TEST_CUSTOM_PROCESS_LINE
-	else if (DANTE_BROWSING_TEST_CUSTOM_PROCESS_LINE(test, buf))
-	{}
-#endif
-	else if (buf[0] == 'h' || buf[0] == '?')
-	{
-		db_browse_test_print_input_help(test);
-	}
-	else
-	{
-		printf("Unknown command '%s'\n", buf);
-	}
 	return AUD_SUCCESS;
 }
 
@@ -985,19 +521,7 @@ db_browse_test_main_loop
 	dante_sockets_t select_sockets;
 #endif
 
-	DB_TEST_PRINT("Running main loop\n");
-
-	while(g_running)
 	{
-		char buf[BUFSIZ];
-
-		// print prompt if needed
-		if (print_prompt)
-		{
-			printf("\n> ");
-			fflush(stdout);
-			print_prompt = AUD_FALSE;
-		}
 
 #ifdef _WIN32
 		dapi_utils_step(test->runtime, AUD_SOCKET_INVALID, NULL);
@@ -1010,59 +534,14 @@ db_browse_test_main_loop
 			test->network_changed = AUD_FALSE;
 		}
 
-
-		// and check stdin
-		buf[0] = '\0';
-
-#ifdef _WIN32
-		if (_kbhit())
-		{
-			DWORD len = 0;
-			if (!ReadConsoleA(GetStdHandle(STD_INPUT_HANDLE),buf,BUFSIZ-1,&len, 0))
-			{
-				DB_TEST_ERROR("Error reading console: %d\n", GetLastError());
-			}
-			else if (len > 0)
-			{
-				buf[len] = '\0';
-			}
-			print_prompt = AUD_TRUE;
-		}
-#else
-		if (FD_ISSET(0, &select_sockets.read_fds)) // 0 is always stdin
-		{
-			if (fgets(buf, BUFSIZ, stdin) == NULL)
-			{
-				result = aud_error_get_last();
-				if (feof(stdin))
-				{
-					printf("Exiting...\n");
-					return AUD_SUCCESS;
-				}
-				else if (result == AUD_ERR_INTERRUPTED)
-				{
-					clearerr(stdin);
-				}
-				else
-				{
-					printf("Exiting with %s\n", dr_error_message(result, test->errbuf));
-					return result;
-				}
-			}
-			print_prompt = AUD_TRUE;
-		}
-#endif
-
-		// if we got some input then process the line
-		if (buf[0])
 		{
 		#ifdef _WIN32
 			DB_TEST_PRINT("\n");
 		#endif
-			result = db_browse_test_process_line(test, buf);
+			result = db_browse_test_process_line(test);
 			if (result != AUD_SUCCESS)
 			{
-				break;
+				return result;
 			}
 		}
 	}
@@ -1270,9 +749,8 @@ db_test_parse_options
 	}
 }
 
-int main(int argc, char * argv[])
+__declspec(dllexport) int GetNames(int argc, char * argv[])
 {
-
 	signal(SIGINT, sig_handler);
 
 	db_browse_test_t test;
@@ -1406,6 +884,50 @@ int main(int argc, char * argv[])
 	test.running = AUD_TRUE;
 
 	result = db_browse_test_main_loop(&test);
+	//argv[0] = "hello";
+
+	STRSAFE_LPSTR temp;
+	const size_t alloc_size = sizeof(char) * 101;
+
+	dapi_utils_step(test.runtime, AUD_SOCKET_INVALID, NULL);
+
+	unsigned int i;
+	const db_browse_network_t* network = db_browse_get_network(test.browse);
+	for (i = 0; i < db_browse_network_get_num_devices(network); i++)
+	{
+		db_browse_device_t* device = db_browse_network_device_at_index(network, i);
+		const char* name = db_browse_device_get_name(device);
+		result = db_browse_device_reconfirm(device, 0, AUD_FALSE);
+		if (result != AUD_SUCCESS)
+		{
+			printf("Error reconfirming device '%s': %s\n", name, aud_error_message(result, test.errbuf));
+			//return result;
+		}
+		printf("Reconfirming device '%s'\n", name);
+
+		temp = (STRSAFE_LPSTR)CoTaskMemAlloc(alloc_size);
+		StringCchCopyA(temp, alloc_size, name);
+
+		CoTaskMemFree(argv[i]);
+		argv[i] = (char*)temp;
+	}
+
+	/*
+	for (int i = 0; i < argc; i++)
+	{
+		len = 0;
+		StringCchLengthA(argv[i], STRSAFE_MAX_CCH, &len);
+		result += len;
+
+		temp = (STRSAFE_LPSTR)CoTaskMemAlloc(alloc_size);
+		StringCchCopyA(temp, alloc_size, (STRSAFE_LPCSTR)"123456789");
+
+		// CoTaskMemFree must be used instead of delete to free memory.
+
+		CoTaskMemFree(argv[i]);
+		argv[i] = (char*)temp;
+	}*/
+
 	DB_TEST_DEBUG("Finished main loop\n");
 
 cleanup:

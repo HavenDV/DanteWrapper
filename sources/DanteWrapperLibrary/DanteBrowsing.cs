@@ -6,12 +6,12 @@ namespace DanteWrapperLibrary
     public class DanteBrowsing
     {
         [DllImport("dante_browsing_test.dll", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int test(int argc, [In, Out] string[] argv);
+        internal static extern int GetNames(int argc, [In, Out] string[] argv);
 
         public static IList<string> GetNames()
         {
             var args = new[] { "hello.exe", "-conmon", "", "", "", "", "", "", "", "" };
-            test(2, args);
+            GetNames(2, args);
 
             return args;
         }
