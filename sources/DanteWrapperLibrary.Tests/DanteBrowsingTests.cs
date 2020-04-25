@@ -47,5 +47,17 @@ namespace DanteWrapperLibrary.Tests
         {
             DanteRouting.AddTxLabel("DESKTOP-VSC", 3, "TEST-LABEL");
         }
+
+        [TestMethod]
+        public void SetRxChannelNameTest()
+        {
+            DanteRouting.SetRxChannelName("DESKTOP-VSC", 3, "TEST-CHANNEL-NAME");
+        }
+
+        [TestMethod]
+        public void SetSxChannelNameTest()
+        {
+            DanteRouting.SetSxChannelName("DESKTOP-VSC", 3, "TEST-CHANNEL-NAME");
+        }
     }
 }
