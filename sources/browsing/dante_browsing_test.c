@@ -503,40 +503,6 @@ db_browse_test_process_line(db_browse_test_t * test)
 	return AUD_SUCCESS;
 }
 
-static aud_error_t
-db_browse_test_main_loop
-(
-	db_browse_test_t * test
-) {
-	aud_error_t result;
-
-	{
-
-#ifdef _WIN32
-		dapi_utils_step(test->runtime, AUD_SOCKET_INVALID, NULL);
-#else
-		dapi_utils_step(test->runtime, 0, &select_sockets);
-#endif
-		if (test->network_changed)
-		{
-			printf("Network changed\n");
-			test->network_changed = AUD_FALSE;
-		}
-
-		{
-		#ifdef _WIN32
-			DB_TEST_PRINT("\n");
-		#endif
-			result = db_browse_test_process_line(test);
-			if (result != AUD_SUCCESS)
-			{
-				return result;
-			}
-		}
-	}
-	return AUD_SUCCESS;
-}
-
 __declspec(dllexport) int GetNames
 (
 	/*[out]*/ char*** ppStringBufferReceiver,
@@ -645,7 +611,12 @@ __declspec(dllexport) int GetNames
 	}
 	test.running = AUD_TRUE;
 
-	result = db_browse_test_main_loop(&test);
+	dapi_utils_step(test.runtime, AUD_SOCKET_INVALID, NULL);
+
+	if (test.network_changed)
+	{
+		test.network_changed = AUD_FALSE;
+	}
 
 	STRSAFE_LPSTR temp;
 	const size_t alloc_size = sizeof(char) * 101;
@@ -680,6 +651,24 @@ __declspec(dllexport) int GetNames
 		//ptr[i] = (char*)temp;
 	}
 
+	/*
+	unsigned n = db_browse_get_num_sdp_descriptors(test.browse);
+	if (n == 0)
+	{
+		fputs("No AES67 flows discovered\n", stdout);
+	}
+	else
+	{
+		unsigned i;
+		for (i = 0; i < n; i++)
+		{
+			const dante_sdp_descriptor_t* sdp =
+				db_browse_sdp_descriptor_at_index(test.browse, i);
+
+			db_test_print_sdp_descriptor(sdp);
+			putchar('\n');
+		}
+	}*/
 
 cleanup:
 	if (test.browse)
