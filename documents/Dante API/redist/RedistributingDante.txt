@@ -1,0 +1,137 @@
+----------------------------------------------
+Redistributing Dante Infrastructure on Windows
+----------------------------------------------
+
+-------
+Summary
+-------
+
+Dante applications running on windows rely on shared services for Discovery,
+control and monitoring. Audinate provides redistributable modules
+for Dante Discovery and for Dante Control and Monitoring (ConMon).
+
+Component redistribution is done using the Windows Installer XML (WiX) Toolset.
+The redistributable packages MUST be wrapped inside a WiX bundle for redistribution.
+
+If the host application's installer is already a WiX bundle then the
+redistributable MSI files can simply be added
+as additional packages to the bundle payload. No further work is necessary.
+ 
+If the host application installer is not a WiX bundle then the component 
+packages must be wrapped into a new WiX bundle. The resulting executable can
+then be added to the host application's installer package.
+
+An example bundle description file is provided with the redistributable
+components to show how MSI files can be wrapped into a bundle.
+how this is done. No further work is necessary.
+   
+This document describes why bundling is necessary and how to create a new
+ConMon wrapper bundle using the example code provided.
+
+----------
+Background
+----------
+
+Dante Discovery and Dante Control and Monitoring are core components
+of the Dante system.
+On windows, these are system service usable by one or more applications.
+These components are shared resources and may be bundled with multiple application
+installations. Reference counting is needed to ensure that the components
+are installed only once and remain available until all applications have
+been uninstalled.
+
+The MSI infrastructure only supports reference counting at the component level.
+Additional software is required to enable reference counting for complete
+MSI packages. The Windows Installer XML Toolset (WiX)
+provides this functionality via WiX bundles. A WiX Bundle can combine one
+or more child
+packages into a single installer, with reference counting for the children. 
+Wix's MSI package reference counting relies on each bundle being uniquely
+identifiable by having a unique "UpgradeCode". This is defined at bundle
+compile time.
+
+Audinate uses WiX bundles for component redistribution. Manufacturers
+wishing to redistribute Dante components will need to create one or more
+of their own WiX bundles, each with a unique UpgradeCode.
+
+-------------------------
+Creating a Wrapper Bundle
+-------------------------
+
+The simplest way to create a WiX wrapper bundle is to modify the
+example Bundle definition provided with the redistributables:
+
+  1. Install the latest version of WiX. Audinate recommends using v3.6 or
+     newer. WiX is available from "http://http://wixtoolset.org/".
+
+  2. Update the MANUFACTURER and PRODUCT_NAME fields as appropriate. 
+  
+  3. Optionally, update the VERSION field. By default this field contains the 
+     current ConMon version. This value will work and can be updated in new 
+	 versions if ConMon updates are subsequently included. The value can be
+	 changed if desired to reflect the application version rather than the
+	 ConMon version.
+
+  4. Generate a new GUID for the bundle's UPGRADE_CODE. Once chosen, the same 
+     value should be used for future updates to the bundles payload, such as
+	 updating to a later version of ConMon as part of an application update.
+	 There are many ways to obtain a new GUID:
+     * Microsoft provides GUID generators as part of it's SDKs. 
+     * Online generators also exist
+ 
+  5. A batch file for compiling the example bundle is also provided as part
+     of the redistributable. Run this script to generate the bundle.
+   
+  6. WiX bundles include an installation engine. If the output bundle needs
+     to be signed, the bundle's internal engine must first be signed. The
+	 WiX tool "insignia.exe" can be used to extract an engine from a bundle
+	 before signing and to re-insert it after signing.
+
+NOTE:
+-----
+
+Do *NOT* rename the Discovery and ConMon MSI package files. The MSI
+system relies on consistent package names in order to support minor
+upgrades. Renaming the package names will cause package upgrades to fail.
+ 
+-----------------
+Using WiX Bundles
+-----------------
+
+Installing Dante components via a bundle is as simple as running the
+bundle executable.
+Command line options are available for installation and uninstallation
+without user interaction:
+
+  * To install: pass "/install /quiet"
+
+  * To uninstall: pass "/uninstall /quiet"
+
+Installation requires elevated privileges to install. If the calling process is
+not already elevated then a UAC prompt may be presented, even if "/quiet"
+is passed on the command line. The information for this prompt comes from
+the signing information in the bundle's internal engine.
+
+If no options are specified, the bundle shows the user a dialog. The example
+bundle configuration as provided by Audinate does not set a license text or
+icon. Manufacturers who show the bundle may wish to further customise the
+bundle to provide a cleaner look and feel to the user.
+
+----------------------------------------------
+Releasing Multiple Dante-enabled Applications
+----------------------------------------------
+
+Manufacturers with only a single Dante-enabled application only require a
+single wrapper bundle. If multiple independently installable/uninstallable
+Dante-enabled applications are released, then reference counting between
+these applications is also required. In this case two options are available:
+
+  1. Create a different wrapper bundle for each application and let WiX 
+     handle reference counting.
+   
+  2. Create a single wrapper bundle for all the applications and use an
+     an additional mechanism for referencing counting the bundle itself.
+
+
+
+

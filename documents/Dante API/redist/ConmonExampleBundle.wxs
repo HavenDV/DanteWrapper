@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+
+	<!-- Update these settings as appropriate -->
+	<?define VERSION="4.0.3" ?>
+	<?define MANUFACTURER="YOUR-NAME-HERE" ?>
+	<?define UPGRADE_CODE="YOUR-GUID-HERE" ?>
+	<?define PRODUCT_NAME="YOUR-PRODUCT-NAME-HERE" ?>
+
+
+	<Bundle
+		Name="$(var.PRODUCT_NAME)"
+		Version="$(var.VERSION)"
+		Manufacturer="$(var.MANUFACTURER)"
+		UpgradeCode="$(var.UPGRADE_CODE)"
+	>
+		<BootstrapperApplicationRef Id="WixStandardBootstrapperApplication.RtfLicense" />
+		<Chain>
+
+			<!-- Dante Discovery 32/64 bit-->
+			<MsiPackage
+				Id="DanteDiscvery_x86"
+				SourceFile="DanteDiscovery-x86.msi"
+				InstallCondition="NOT VersionNT64"
+				Visible="yes"
+			/>
+			<MsiPackage
+				Id="DanteDiscovery_x64"
+				SourceFile="DanteDiscovery-x64.msi"
+				InstallCondition="VersionNT64"
+				Visible="yes"
+			/>
+
+			<!-- Dante Control and Monitoring -->
+			<MsiPackage
+				Id="Conmon"
+				SourceFile="Conmon.msi"
+				Visible="yes"
+			/>
+		</Chain>
+	</Bundle>
+</Wix>

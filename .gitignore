@@ -261,6 +261,4 @@ __pycache__/
 *.pyc
 /MigrationBackup/
 
-/sources/Installer/wix/*.g.wxs
-/sources/Installer/*.msi
-/sources/Installer/log.txt
+!documents/**
