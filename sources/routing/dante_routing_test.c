@@ -3291,7 +3291,10 @@ __declspec(dllexport) int Run
 		goto cleanup;
 	}
 #endif
-	dapi_utils_step(test.runtime, AUD_SOCKET_INVALID, NULL);
+	for (size_t i = 0; i < 15; i++)
+	{
+		dapi_utils_step(test.runtime, AUD_SOCKET_INVALID, NULL);
+	}
 
 	result = dr_test_process_line(&test, argument, array, length);
 
