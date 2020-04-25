@@ -2511,7 +2511,7 @@ dr_test_process_line(
 	dr_test_t * test, 
 	/*[in]*/ char * buf,
 	/*[out]*/ char*** array,
-	/*[out]*/ int* length
+	/*[out]*/ int* count
 )
 {
 	char in_name[BUFSIZ];
@@ -2769,7 +2769,7 @@ dr_test_process_line(
 			}
 			else if (sscanf(buf, "l %u", &in_channel) == 1)
 			{
-				dr_test_print_channel_txlabels(test->device, (dante_id_t) in_channel);
+				dr_test_print_channel_txlabels(test->device, (dante_id_t) in_channel, array, count);
 			}
 			else if (sscanf(buf, "l %s", in_name) == 1)
 			{
@@ -2784,7 +2784,7 @@ dr_test_process_line(
 			}
 			else
 			{
-				dr_test_print_channel_txlabels(test->device, 0);
+				dr_test_print_channel_txlabels(test->device, 0, array, count);
 			}
 			break;
 		}
@@ -2973,7 +2973,7 @@ dr_test_process_line(
 			}
 			else
 			{
-				dr_test_print_device_rxchannels(test->device, array, length);
+				dr_test_print_device_rxchannels(test->device, array, count);
 			}
 			break;
 		}
@@ -3038,7 +3038,7 @@ dr_test_process_line(
 			}
 			else
 			{
-				dr_test_print_device_txchannels(test->device);
+				dr_test_print_device_txchannels(test->device, array, count);
 			}
 			break;
 		}

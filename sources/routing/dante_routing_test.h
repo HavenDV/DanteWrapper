@@ -93,7 +93,9 @@ dr_test_print_device_info
 void
 dr_test_print_device_txchannels
 (
-	dr_device_t * device
+	dr_device_t * device,
+	/*[out]*/ char*** array,
+	/*[out]*/ int* count
 );
 
 void
@@ -116,7 +118,9 @@ void
 dr_test_print_channel_txlabels
 (
 	dr_device_t * device,
-	dante_id_t channel_id
+	dante_id_t channel_id,
+	/*[out]*/ char*** array,
+	/*[out]*/ int* count
 );
 
 void

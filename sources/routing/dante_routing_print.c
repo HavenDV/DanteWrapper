@@ -429,7 +429,9 @@ dr_test_print_device_info
 void
 dr_test_print_device_txchannels
 (
-	dr_device_t * device
+	dr_device_t * device,
+	/*[out]*/ char*** array,
+	/*[out]*/ int* count
 ) {
 	unsigned int i, n = dr_device_num_txchannels(device);
 
@@ -457,13 +459,18 @@ dr_test_print_device_txchannels
 		-MUTED_FIELD_WIDTH,   "Mute",
 		-DBU_FIELD_WIDTH,     "dBu"
 	);
+
+	set_output_array_length(n, array, count);
 	for (i = 0; i < n; i++)
 	{
+		const int maxLineSize = 4096;
+		char line[4096];
+
 		dr_txchannel_t * txc = dr_device_txchannel_at_index(device, i);
 		dante_id_t id = dr_txchannel_get_id(txc);
 		if (dr_txchannel_is_stale(txc))
 		{
-			DR_TEST_PRINT("  %*d %*s %*s %*s %*s %*s\n",
+			SNPRINTF(line, maxLineSize, "  %*d %*s %*s %*s %*s %*s\n",
 				-ID_FIELD_WIDTH,      id,
 				-NAME_FIELD_WIDTH,    "?",
 				-FORMAT_FIELD_WIDTH,  "?",
@@ -497,22 +504,17 @@ dr_test_print_device_txchannels
 				dr_test_print_formats(dr_txchannel_get_formats(txc), format, sizeof(format));
 			}
 			
-			DR_TEST_PRINT("  %*d %*s %*s %*s %*s",
+			SNPRINTF(line, maxLineSize, "  %*d %*s %*s %*s %*s %+*d\n",
 				-ID_FIELD_WIDTH,      id,
 				-NAME_FIELD_WIDTH,    name,
 				-FORMAT_FIELD_WIDTH,  format,
 				-ENABLED_FIELD_WIDTH, (enabled ? "true" : "false"),
-				-MUTED_FIELD_WIDTH,   (muted ? "true" : "false")
+				-MUTED_FIELD_WIDTH,   (muted ? "true" : "false"),
+				-DBU_FIELD_WIDTH,     (dbu == DANTE_DBU_UNSET ? 0 : (int)dbu)
 			);
-			if (dbu == DANTE_DBU_UNSET)
-			{
-				DR_TEST_PRINT(" %*s\n", -DBU_FIELD_WIDTH, "-");
-			}
-			else
-			{
-				DR_TEST_PRINT(" %+*d\n", -DBU_FIELD_WIDTH, (int) dbu);
-			}
 		}
+
+		copy_to_output_array(i, line, array, count);
 	}
 }
 
@@ -651,22 +653,13 @@ dr_test_print_device_rxchannels
 			}
 			
 
-			DR_TEST_PRINT("  %*d %*s %*s %*s %*s",
+			SNPRINTF(line, maxLineSize, "  %*d %*s %*s %*s %*s %+*d %*s %*s %*s\n",
 				-ID_FIELD_WIDTH,           id,
 				-NAME_FIELD_WIDTH,         name,
 				-FORMAT_FIELD_WIDTH,       format_buf,
 				-LATENCY_FIELD_WIDTH,      latency_buf,
-				-MUTED_FIELD_WIDTH,        (muted ? "true" : "false")
-			);
-			if (dbu == DANTE_DBU_UNSET)
-			{
-				DR_TEST_PRINT(" %*s", -DBU_FIELD_WIDTH, "-");
-			}
-			else
-			{
-				DR_TEST_PRINT(" %+*d", -DBU_FIELD_WIDTH, (int) dbu);
-			}
-			DR_TEST_PRINT(" %*s %*s %*s\n",
+				-MUTED_FIELD_WIDTH,        (muted ? "true" : "false"),
+				-DBU_FIELD_WIDTH,          (dbu == DANTE_DBU_UNSET ? 0 : (int)dbu),
 				-SUBSCRIPTION_FIELD_WIDTH, (sub ? sub : "-"),
 				-STATUS_FIELD_WIDTH,       ((status != DANTE_RXSTATUS_NONE) ? dante_rxstatus_to_string(status) : "-"),
 				-FLOW_FIELD_WIDTH,         flow_buf
@@ -683,7 +676,9 @@ void
 dr_test_print_channel_txlabels
 (
 	dr_device_t * device,
-	dante_id_t channel_id
+	dante_id_t channel_id,
+	/*[out]*/ char*** array,
+	/*[out]*/ int* count
 ) {
 	aud_error_t result;
 	uint16_t c, num_txlabels = DR_TEST_MAX_TXLABELS;
@@ -695,21 +690,31 @@ dr_test_print_channel_txlabels
 		{
 			DR_TEST_PRINT("WARNING: this component has been marked as stale and needs updating\n");
 		}
+
+		set_output_array_length(n, array, count);
 		for (c = 0; c < n; c++)
 		{
 			txc = dr_device_txchannel_at_index(device, c);
 			dante_id_t curr_channel_id = dr_txchannel_get_id(txc);
 			if (curr_channel_id)
 			{
-				dr_test_print_channel_txlabels(device, curr_channel_id);
+				dr_test_print_channel_txlabels(device, curr_channel_id, array, count);
 			}
 			else
 			{
-				DR_TEST_PRINT("NO DATA for channel %u\n", c+1);
+				const int maxLineSize = 4096;
+				char line[4096];
+
+				SNPRINTF(line, maxLineSize, "NO DATA for channel %u\n", c+1);
+
+				copy_to_output_array(channel_id, line, array, count);
 			}
 		}
 		return;
 	}
+
+	const int maxLineSize = 4096;
+	char line[4096];
 
 	txc = dr_device_txchannel_with_id(device, channel_id);
 	result = dr_txchannel_get_txlabels(txc, &num_txlabels, g_test_labels);
@@ -726,12 +731,14 @@ dr_test_print_channel_txlabels
 	}
 
 	// now print...
-	DR_TEST_PRINT("%3u: \"%s\"", channel_id, dr_txchannel_get_canonical_name(txc));
+	SNPRINTF(line, maxLineSize, "%3u: \"%s\"", channel_id, dr_txchannel_get_canonical_name(txc));
 	for (c = 0; c < num_txlabels; c++)
 	{
-		DR_TEST_PRINT(" \"%s\"", g_test_labels[c].name);
+		SNPRINTF(line + strlen(line), maxLineSize, " \"%s\"", g_test_labels[c].name);
 	}
-	DR_TEST_PRINT("\n");
+	SNPRINTF(line + strlen(line), maxLineSize, "\n");
+
+	copy_to_output_array(channel_id, line, array, count);
 }
 
 
