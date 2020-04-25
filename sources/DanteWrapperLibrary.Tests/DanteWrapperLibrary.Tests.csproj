@@ -16,4 +16,10 @@
     <ProjectReference Include="..\DanteWrapperLibrary\DanteWrapperLibrary.csproj" />
   </ItemGroup>
 
+  <Target Name="Copy dlls" BeforeTargets="Compile">
+    <Copy SourceFiles="$(SolutionDir)bin\$(Configuration)\Win32\dante_browsing_test.dll" DestinationFolder="$(TargetDir)" />
+    <Copy SourceFiles="$(SolutionDir)bin\$(Configuration)\Win32\dante_routing_test.dll" DestinationFolder="$(TargetDir)" />
+    <Message Text="dll's copied" Importance="high" />
+  </Target>
+
 </Project>
