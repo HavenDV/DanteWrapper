@@ -496,11 +496,8 @@ db_browse_test_process_line(db_browse_test_t * test)
 		result = db_browse_device_reconfirm(device, 0, AUD_FALSE);
 		if (result != AUD_SUCCESS)
 		{
-			printf("Error reconfirming device '%s': %s\n", name, aud_error_message(result, test->errbuf));
 			return result;
 		}
-
-		printf("Reconfirming device '%s'\n", name);
 	}
 
 	return AUD_SUCCESS;
@@ -512,14 +509,6 @@ db_browse_test_main_loop
 	db_browse_test_t * test
 ) {
 	aud_error_t result;
-	aud_bool_t print_prompt = AUD_TRUE;
-
-#ifdef  _WIN32
-	// set to line buffered mode.
-	SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE),ENABLE_LINE_INPUT|ENABLE_ECHO_INPUT|ENABLE_PROCESSED_INPUT);
-#else
-	dante_sockets_t select_sockets;
-#endif
 
 	{
 
@@ -548,208 +537,11 @@ db_browse_test_main_loop
 	return AUD_SUCCESS;
 }
 
-static void usage(void)
-{
-	printf("OPTIONS:\n");
-	printf("  -i print incremental (node) changes\n");
-	printf("  -n print network changes\n");
-	printf("  -media browse for media devices\n");
-	printf("  -conmon browse for conmon devices\n");
-	printf("  -safe browse for safe-mode devices\n");
-	printf("  -upgrade browse for upgrade devices\n");
-	printf("  -via browse for via devices\n");
-	printf("  -aes67 browse for aes67 sap announcements (interface index number must be provided)\n");
-	printf("  -sdp browse for sdp descriptors announcements (interface index number must be provided)\n");
-	printf("  -in=NAME add browsing network with interface called NAME\n");
-	printf("  -ii=INDEX add browsing network with interface at INDEX\n");
-	printf("  -localhost=BOOL enable / disable browsing on localhost interface\n");
-	printf("  -f=_MFID filter browse by manufacturer ID (syntax _0123abcd...)\n");
-#if DAPI_HAS_CONFIGURABLE_MDNS_SERVER_PORT == 1
-	printf("  -m=PORT_NO set MDNS server port number to PORT_NO\n");
-#endif
-#if DAPI_ENVIRONMENT == DAPI_ENVIRONMENT__EMBEDDED
-#ifdef WIN32
-	printf("  -d=PORT_NO set domain handler port number to PORT_NO\n");
-#else
-	printf("  -d=PATH set domain handler socket path to PATH\n");
-#endif
-#endif
-
-#if DAPI_ENVIRONMENT == DAPI_ENVIRONMENT__STANDALONE
-	printf("  --domain[=<preferred domain>] browse on a domain\n");
-	printf("  --user=<user> browse on a domain with the specified username\n");
-	printf("  --pass=<password> browse on a domain with the specified password\n");
-	printf("  --ddm=<host>:<port> use the specified ddm rather than discovering (--domain must be specified)\n");
-#endif
-#ifdef DANTE_BROWSING_TEST_CUSTOM_USAGE
-	DANTE_BROWSING_TEST_CUSTOM_USAGE();
-#endif
-}
-
-
-static void
-db_test_parse_options
+__declspec(dllexport) int GetNames
 (
-	db_browse_test_t * test,
-	int argc,
-	char * argv[]
-) {
-
-	int i;
-	aud_interface_identifier_t ifaces[DB_BROWSE_MAX_INTERFACE_INDEXES];
-	unsigned int num_ifaces = 0;
-	aud_error_t result;
-
-	for (i = 1; i < argc; i++)
-	{
-		if (!strcmp(argv[i], "-i"))
-		{
-			test->print_node_changes = AUD_TRUE;
-		}
-		else if (!strcmp(argv[i], "-n"))
-		{
-			test->print_network_changes = AUD_TRUE;
-		}
-		else if (!strcmp(argv[i], "-media"))
-		{
-			test->types |= DB_BROWSE_TYPE_MEDIA_DEVICE;
-		}
-		else if (!strcmp(argv[i], "-conmon"))
-		{
-			test->types |= DB_BROWSE_TYPE_CONMON_DEVICE;
-		}
-		else if (!strcmp(argv[i], "-safe"))
-		{
-			test->types |= DB_BROWSE_TYPE_SAFE_MODE_DEVICE;
-		}
-		else if (!strcmp(argv[i], "-upgrade"))
-		{
-			test->types |= DB_BROWSE_TYPE_UPGRADE_MODE_DEVICE;
-		}
-		else if (!strcmp(argv[i], "-via"))
-		{
-			test->types |= DB_BROWSE_TYPE_VIA_DEVICE;
-		}
-		else if (!strcmp(argv[i], "-aes67"))
-		{
-			test->types |= DB_BROWSE_TYPE_AES67_FLOW;
-		}
-		else if (!strcmp(argv[i], "-sdp"))
-		{
-			test->types |= DB_BROWSE_TYPE_SDP;
-		}
-		else if (!strncmp(argv[i], "-in=", 4))
-		{
-			if (num_ifaces < DB_BROWSE_MAX_INTERFACE_INDEXES)
-			{
-				ifaces[num_ifaces].flags = AUD_INTERFACE_IDENTIFIER_FLAG_NAME;
-#if AUD_INTERFACE_NAME_IS_WCHAR == 1
-				mbstowcs(ifaces[num_ifaces].name, argv[i]+4, AUD_INTERFACE_NAME_LENGTH);
-#else
-				aud_strlcpy(ifaces[num_ifaces].name, argv[i]+4, AUD_INTERFACE_NAME_LENGTH);
-#endif
-				num_ifaces++;
-			}
-			else
-			{
-				printf("Too many interfaces specified (max %d)\n", DB_BROWSE_MAX_INTERFACE_INDEXES);
-				exit(0);
-			}
-		}
-		else if (!strncmp(argv[i], "-ii=", 4))
-		{
-			if (num_ifaces < DB_BROWSE_MAX_INTERFACE_INDEXES)
-			{
-				ifaces[num_ifaces].flags = AUD_INTERFACE_IDENTIFIER_FLAG_INDEX;
-				ifaces[num_ifaces].index = atoi(argv[i] + 4);
-				num_ifaces++;
-			}
-			else
-			{
-				printf("Too many interfaces specified (max %d)\n", DB_BROWSE_MAX_INTERFACE_INDEXES);
-				exit(0);
-			}
-		}
-		else if (!strcmp(argv[i], "-localhost=true"))
-		{
-			test->browse_config.localhost = AUD_TRUE;
-		}
-		else if (!strcmp(argv[i], "-localhost=false"))
-		{
-			test->browse_config.localhost = AUD_FALSE;
-		}
-		else if (!strncmp(argv[i], "-f=", 3))
-		{
-			test->browse_filter = argv[i] + 3;
-		}
-#if DAPI_ENVIRONMENT == DAPI_ENVIRONMENT__STANDALONE
-		else if (dapi_utils_ddm_config_parse_one(&test->ddm_config, argv[i], &result))
-		{
-			if (result != AUD_SUCCESS)
-			{
-				usage();
-				exit(0);
-			}
-		}
-#endif
-#if DAPI_HAS_CONFIGURABLE_MDNS_SERVER_PORT == 1
-		else if (!strncmp(argv[i], "-m=", 3))
-		{
-			test->mdns_server_port = (uint16_t) atoi(argv[i] + 3);
-		}
-#endif
-#if DAPI_ENVIRONMENT == DAPI_ENVIRONMENT__EMBEDDED
-		else if (!strncmp(argv[i], "-d=", 3))
-		{
-#ifdef WIN32
-			test->domain_handler.port_no = (uint16_t)atoi(argv[i] + 3);
-#else
-			test->domain_handler.socket_path = argv[i] + 3;
-#endif
-		}
-#endif
-#ifdef DANTE_BROWSING_TEST_CUSTOM_PARSE_OPTIONS
-		else if (DANTE_BROWSING_TEST_CUSTOM_PARSE_OPTIONS(test, argc, argv, &i))
-		{}
-#endif
-		else
-		{
-			usage();
-			exit(0);
-		}
-	}
-
-	// Prepare the interface list, including converting name to index if needed
-	if (num_ifaces)
-	{
-		for (i = 0; i < (int)num_ifaces; i++)
-		{
-			result = aud_interface_get_identifiers(NULL, ifaces + i, 1);
-			if (result != AUD_SUCCESS)
-			{
-				if (ifaces[i].flags & AUD_INTERFACE_IDENTIFIER_FLAG_INDEX)
-				{
-					printf("Unknown interface index %d\n", ifaces[i].index);
-					exit(0);
-				}
-				else if (ifaces[i].flags & AUD_INTERFACE_IDENTIFIER_FLAG_NAME)
-				{
-#if AUD_INTERFACE_NAME_IS_WCHAR == 1
-					wprintf(L"Unknown interface name '%s'\n", ifaces[i].name);
-#else
-					printf("Unknown interface name %s\n", ifaces[i].name);
-
-#endif
-					exit(0);
-				}
-			}
-			test->browse_config.interface_indexes[i] = ifaces[i].index;
-		}
-		test->browse_config.num_interface_indexes = num_ifaces;
-	}
-}
-
-__declspec(dllexport) int GetNames(int argc, char * argv[])
+	/*[out]*/ char*** ppStringBufferReceiver,
+	/*[out]*/ int* piStringsCountReceiver
+)
 {
 	signal(SIGINT, sig_handler);
 
@@ -759,8 +551,7 @@ __declspec(dllexport) int GetNames(int argc, char * argv[])
 	memset(&test, 0, sizeof(db_browse_test_t));
 	db_browse_config_init_defaults(&test.browse_config);
 
-	db_test_parse_options(&test, argc, argv);
-
+	test.types |= DB_BROWSE_TYPE_CONMON_DEVICE;
 #ifdef WIN32
 	dapi_utils_check_quick_edit_mode(AUD_FALSE);
 #endif
@@ -770,35 +561,7 @@ __declspec(dllexport) int GetNames(int argc, char * argv[])
 		test.types = DB_BROWSE_TYPES_ALL_DEVICES | DB_BROWSE_TYPE_AES67_FLOW;
 	}
 
-#if DAPI_ENVIRONMENT == DAPI_ENVIRONMENT__EMBEDDED
-	dapi_config_t * dapiConfig = dapi_config_new();
-	if (dapiConfig)
-	{
-		dante_domain_handler_config_t * domainHandlerConfig = dapi_config_get_domain_handler_config(dapiConfig);
-
-		if (domainHandlerConfig)
-		{
-#ifdef WIN32
-			dante_domain_handler_config_set_port(domainHandlerConfig, test.domain_handler.port_no);
-#else
-			dante_domain_handler_config_set_unix_path(domainHandlerConfig, test.domain_handler.socket_path);
-#endif
-		}
-	}
-
-#if DAPI_HAS_CONFIGURABLE_MDNS_SERVER_PORT == 1
-	if (test.mdns_server_port > 0)
-	{
-		dapi_config_set_mdns_server_port(dapiConfig, test.mdns_server_port);
-	}
-#endif
-
-	result = dapi_new_config(dapiConfig, &test.dapi);
-
-	dapi_config_delete(dapiConfig);
-#else
 	result = dapi_new(&test.dapi);
-#endif
 	if (result != AUD_SUCCESS)
 	{
 		DB_TEST_ERROR("Error initialising environment: %s\n", aud_error_message(result, test.errbuf));
@@ -839,7 +602,6 @@ __declspec(dllexport) int GetNames(int argc, char * argv[])
 		if (!test.browse_config.interface_indexes[0])
 		{
 			DB_TEST_PRINT("\nBrowsing for AES67 SAP/SDP : Interface index number must be provided. i.e) -ii=[index number] \n\n");
-			usage();
 			exit(0);
 		}
 	}
@@ -884,51 +646,40 @@ __declspec(dllexport) int GetNames(int argc, char * argv[])
 	test.running = AUD_TRUE;
 
 	result = db_browse_test_main_loop(&test);
-	//argv[0] = "hello";
 
 	STRSAFE_LPSTR temp;
 	const size_t alloc_size = sizeof(char) * 101;
 
 	dapi_utils_step(test.runtime, AUD_SOCKET_INVALID, NULL);
 
+
+
+
 	unsigned int i;
 	const db_browse_network_t* network = db_browse_get_network(test.browse);
-	for (i = 0; i < db_browse_network_get_num_devices(network); i++)
+	unsigned int devices_count = db_browse_network_get_num_devices(network);
+	*piStringsCountReceiver = devices_count;
+	size_t stSizeOfArray = sizeof(char*) * devices_count;
+	*ppStringBufferReceiver = (char**)CoTaskMemAlloc(stSizeOfArray);
+	memset(*ppStringBufferReceiver, 0, stSizeOfArray);
+	for (i = 0; i < devices_count; i++)
 	{
 		db_browse_device_t* device = db_browse_network_device_at_index(network, i);
 		const char* name = db_browse_device_get_name(device);
 		result = db_browse_device_reconfirm(device, 0, AUD_FALSE);
 		if (result != AUD_SUCCESS)
 		{
-			printf("Error reconfirming device '%s': %s\n", name, aud_error_message(result, test.errbuf));
-			//return result;
+			return result;
 		}
-		printf("Reconfirming device '%s'\n", name);
 
 		temp = (STRSAFE_LPSTR)CoTaskMemAlloc(alloc_size);
 		StringCchCopyA(temp, alloc_size, name);
 
-		CoTaskMemFree(argv[i]);
-		argv[i] = (char*)temp;
+		(*ppStringBufferReceiver)[i] = (char*)CoTaskMemAlloc(strlen(name) + 1);
+		strcpy((*ppStringBufferReceiver)[i], name);
+		//ptr[i] = (char*)temp;
 	}
 
-	/*
-	for (int i = 0; i < argc; i++)
-	{
-		len = 0;
-		StringCchLengthA(argv[i], STRSAFE_MAX_CCH, &len);
-		result += len;
-
-		temp = (STRSAFE_LPSTR)CoTaskMemAlloc(alloc_size);
-		StringCchCopyA(temp, alloc_size, (STRSAFE_LPCSTR)"123456789");
-
-		// CoTaskMemFree must be used instead of delete to free memory.
-
-		CoTaskMemFree(argv[i]);
-		argv[i] = (char*)temp;
-	}*/
-
-	DB_TEST_DEBUG("Finished main loop\n");
 
 cleanup:
 	if (test.browse)
