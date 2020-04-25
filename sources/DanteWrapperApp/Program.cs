@@ -7,7 +7,7 @@ namespace DanteWrapperApp
     {
         private static void Main()
         {
-            foreach (var name in DanteRouting.GetRxChannels("WIN-59B9F8QNN58"))
+            foreach (var name in DanteRouting.GetRxChannels("DESKTOP-VSC"))
             {
                 Console.WriteLine(name);
             }

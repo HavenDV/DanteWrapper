@@ -18,7 +18,7 @@ namespace DanteWrapperLibrary.Tests
         [TestMethod]
         public void GetRxChannelsTest()
         {
-            foreach (var name in DanteRouting.GetRxChannels("WIN-59B9F8QNN58"))
+            foreach (var name in DanteRouting.GetRxChannels("DESKTOP-VSC"))
             {
                 Console.WriteLine(name);
             }
@@ -27,7 +27,7 @@ namespace DanteWrapperLibrary.Tests
         [TestMethod]
         public void GetTxChannelsTest()
         {
-            foreach (var name in DanteRouting.GetTxChannels("WIN-59B9F8QNN58"))
+            foreach (var name in DanteRouting.GetTxChannels("DESKTOP-VSC"))
             {
                 Console.WriteLine(name);
             }
@@ -36,7 +36,7 @@ namespace DanteWrapperLibrary.Tests
         [TestMethod]
         public void GetLabelsTest()
         {
-            foreach (var name in DanteRouting.GetLabels("WIN-59B9F8QNN58"))
+            foreach (var name in DanteRouting.GetLabels("DESKTOP-VSC"))
             {
                 Console.WriteLine(name);
             }
