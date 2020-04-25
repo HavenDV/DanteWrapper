@@ -262,4 +262,4 @@ __pycache__/
 /MigrationBackup/
 
 !documents/**
-!sources/Dante API/lib/**
+!lib/**
