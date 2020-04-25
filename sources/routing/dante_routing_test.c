@@ -2486,147 +2486,33 @@ static void
 dr_test_parse_options
 (
 	dr_test_options_t * options,
-	int argc, 
-	char * argv[]
+	char * name
 ) {
-#if DAPI_ENVIRONMENT == DAPI_ENVIRONMENT__STANDALONE
 	aud_error_t result;
-#endif
-	int i;
 
 	// init defaults
 	options->automatic_update_on_state_change = AUD_TRUE;
 
-	// and parse options
-	for (i = 1; i < argc; i++)
+	if (dapi_utils_ddm_config_parse_one(&options->ddm_config, name, &result))
 	{
-#if DAPI_ENVIRONMENT == DAPI_ENVIRONMENT__STANDALONE
-		if (dapi_utils_ddm_config_parse_one(&options->ddm_config, argv[i], &result))
+		if (result != AUD_SUCCESS)
 		{
-			if (result != AUD_SUCCESS)
-			{
-				dr_test_usage(argv[0]);
-				exit(1);
-			}
-		}
-		else
-#endif
-#ifdef DANTE_ROUTING_TEST_CUSTOM_PARSE_OPTIONS
-		if (DANTE_ROUTING_TEST_CUSTOM_PARSE_OPTIONS(test, argc, argv, &i))
-		{}
-		else
-#endif
-		if (!strncmp(argv[i], "-h=", 3))
-		{
-			options->num_handles = atoi(argv[i]+3);
-		}
-		else if (!strncmp(argv[i], "-r=", 3))
-		{
-			options->request_limit = atoi(argv[i]+3);
-		}
-		else if (!strncmp(argv[i], "-ii=", 4))
-		{
-			if (options->num_local_interfaces < DR_TEST_MAX_INTERFACES)
-			{
-				int local_interface_index = atoi(argv[i]+4);
-				if (local_interface_index)
-				{
-					options->local_interfaces[options->num_local_interfaces].index = local_interface_index;
-					options->local_interfaces[options->num_local_interfaces].flags = AUD_INTERFACE_IDENTIFIER_FLAG_INDEX;
-					options->num_local_interfaces++;
-				}
-				else
-				{
-					dr_test_usage(argv[0]);
-					exit(1);
-				}
-			}
-		}
-		else if (!strncmp(argv[i], "-i=", 3))
-		{
-			if (options->num_local_interfaces < DR_TEST_MAX_INTERFACES)
-			{
-				const char * intf_name = argv[i]+3;
-				if (intf_name[0])
-				{
-#ifdef WIN32
-					mbstowcs(
-						options->local_interfaces[options->num_local_interfaces].name,
-						intf_name,
-						AUD_INTERFACE_NAME_LENGTH
-					);
-#else
-					aud_strlcpy(
-						options->local_interfaces[options->num_local_interfaces].name,
-						intf_name,
-						AUD_INTERFACE_NAME_LENGTH
-					);
-#endif
-					options->local_interfaces[options->num_local_interfaces].flags = AUD_INTERFACE_IDENTIFIER_FLAG_NAME;
-					options->num_local_interfaces++;
-				}
-				else
-				{
-					dr_test_usage(argv[0]);
-					exit(1);
-				}
-			}
-		}
-		else if (!strncmp(argv[i], "-a=", 3))
-		{
-			if (options->num_addresses < DR_TEST_MAX_INTERFACES)
-			{
-				unsigned int addr = inet_addr(argv[i]+3);
-				options->addresses[options->num_addresses++] = addr;
-			}
-		}
-		else if (!strcmp(argv[i], "-u=true"))
-		{
-			options->automatic_update_on_state_change = AUD_TRUE;
-		}
-		else if (!strcmp(argv[i], "-u=false"))
-		{
-			options->automatic_update_on_state_change = AUD_FALSE;
-		}
-		else if (!strncmp(argv[i], "-p=", 3) && strlen(argv[i]) > 3)
-		{
-			options->local_port = (uint16_t) atoi(argv[i]+3);
-		}
-		else if (!strncmp(argv[i], "-target=", 8) && strlen(argv[i]) > 8)
-		{
-			options->domain_device_addr = strtoul(argv[i] + 8, NULL, 0);
-		}
-#if DAPI_HAS_CONFIGURABLE_MDNS_SERVER_PORT == 1
-		else if (!strncmp(argv[i], "-m=", 3))
-		{
-			options->mdns_server_port = (uint16_t) atoi(argv[i] + 3);
-		}
-#endif
-#if DAPI_ENVIRONMENT == DAPI_ENVIRONMENT__EMBEDDED
-		else if (!strncmp(argv[i], "-d=", 3))
-		{
-#ifdef WIN32
-			options->domain_handler.port_no = (uint16_t)atoi(argv[i] + 3);
-#else
-			options->domain_handler.socket_path = argv[i] + 3;
-#endif
-		}
-#endif
-		else if (argv[i][0] == '-')
-		{
-			dr_test_usage(argv[0]);
 			exit(1);
 		}
-		else
-		{
-			SNPRINTF(options->device_name, sizeof(options->device_name), "%s", argv[i]);
-			break;
-		}
+	}
+	else
+	{
+		SNPRINTF(options->device_name, sizeof(options->device_name), "%s", name);
 	}
 }
 
 static aud_error_t 
-dr_test_process_line(dr_test_t * test, char * buf)
+dr_test_process_line(
+	dr_test_t * test, 
+	/*[in]*/ char * buf,
+	/*[out]*/ char*** array,
+	/*[out]*/ int* length
+)
 {
 	char in_name[BUFSIZ];
 	char in_action[BUFSIZ];
@@ -2635,8 +2521,6 @@ dr_test_process_line(dr_test_t * test, char * buf)
 	int in_dbu;
 	int match_count;
 
-	// trim beginning and end of string
-	//printf("Before=\"%s\"\n", buf);
 	while(*buf && isspace(*buf)) buf++;
 	{
 		char * end = buf;
@@ -2644,14 +2528,6 @@ dr_test_process_line(dr_test_t * test, char * buf)
 		end--;
 		while (end > buf && isspace(*end)) {*end = '\0'; end--;}
 	}
-	//printf("After=\"%s\"\n", buf);
-
-#ifdef DANTE_ROUTING_TEST_CUSTOM_PROCESS_LINE
-	if (DANTE_ROUTING_TEST_CUSTOM_PROCESS_LINE(test, buf))
-	{
-		return AUD_SUCCESS;
-	}
-#endif
 
 	switch (buf[0])
 	{
@@ -3097,7 +2973,7 @@ dr_test_process_line(dr_test_t * test, char * buf)
 			}
 			else
 			{
-				dr_test_print_device_rxchannels(test->device);
+				dr_test_print_device_rxchannels(test->device, array, length);
 			}
 			break;
 		}
@@ -3264,150 +3140,58 @@ dr_test_process_line(dr_test_t * test, char * buf)
 	return AUD_SUCCESS;
 }
 
+
 //----------------------------------------------------------
-// Main run loop and socket handling
+// Helper functions for marshaling
 //----------------------------------------------------------
 
-static aud_error_t
-dr_test_main_loop
+static void set_output_array_length
 (
-	dr_test_t * test
-) {
-	aud_error_t result;
-	aud_bool_t print_prompt = AUD_TRUE;
-
-#ifdef  _WIN32
-	// set to line buffered mode.
-	SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE),ENABLE_LINE_INPUT|ENABLE_ECHO_INPUT|ENABLE_PROCESSED_INPUT);
-#else
-	dante_sockets_t select_sockets;
-#endif
-
-	DR_TEST_PRINT("\nDante Routing API test program. Type '?' for help\n\n");
-	
-	while(g_test_running)
-	{		
-		char buf[BUFSIZ];
-		
-
-		// print prompt if needed
-		if (print_prompt)
-		{
-			const char * name = dr_device_get_name(test->device);
-			DR_TEST_PRINT("\n'%s'> ", name ? name : "");
-			fflush(stdout);
-			print_prompt = AUD_FALSE;
-		}
-
-#ifdef _WIN32
-		dapi_utils_step(test->runtime, AUD_SOCKET_INVALID, NULL);
-#else
-		dapi_utils_step(test->runtime, 0, &select_sockets);
-#endif
-
-		// and check stdin 
-		buf[0] = '\0';
-#ifdef _WIN32
-		if (_kbhit())
-		{
-			DWORD len = 0;
-			if (!ReadConsoleA(GetStdHandle(STD_INPUT_HANDLE),buf,BUFSIZ-1,&len, 0))
-			{
-				printf("Error reading console: %d\n", GetLastError());
-			}
-			else if (len > 0)
-			{
-				buf[len] = '\0';
-			}
-			print_prompt = AUD_TRUE;
-		}
-#else
-		if (FD_ISSET(0, &select_sockets.read_fds)) // 0 is always stdin
-		{
-			if (fgets(buf, BUFSIZ, stdin) == NULL)
-			{
-				result = aud_error_get_last();
-				if (feof(stdin))
-				{
-					DR_TEST_PRINT("Exiting...\n");
-					return AUD_SUCCESS;
-				}
-				else if (result == AUD_ERR_INTERRUPTED)
-				{
-					clearerr(stdin);
-				}
-				else
-				{
-					DR_TEST_ERROR("Exiting with %s\n", dr_error_message(result, g_test_errbuf));
-					return result;
-				}
-			}
-			print_prompt = AUD_TRUE;
-		}
-#endif
-
-		// if we got some input then process the line
-		if (buf[0])
-		{
-		#ifdef _WIN32
-			DR_TEST_PRINT("\n");
-		#endif
-			result = dr_test_process_line(test, buf);
-			if (result != AUD_SUCCESS)
-			{
-				break;
-			}
-		}
-	}
-	return AUD_SUCCESS;
+	/*[in]*/ int value,
+	/*[out]*/ char*** array,
+	/*[out]*/ int* count
+)
+{
+	*count = value;
+	size_t sizeOfArray = sizeof(char*) * value;
+	*array = (char**)CoTaskMemAlloc(sizeOfArray);
+	memset(*array, 0, sizeOfArray);
 }
 
+static void copy_to_output_array
+(
+	/*[in]*/ int i,
+	/*[in]*/ const char* value,
+	/*[out]*/ char*** array,
+	/*[out]*/ int* count
+)
+{
+	(*array)[i] = (char*)CoTaskMemAlloc(strlen(value) + 1);
+	strcpy((*array)[i], value);
+}
+
+
 //----------------------------------------------------------
-// Application entry
+// Entry point
 //----------------------------------------------------------
 
-int main(int argc, char * argv[])
+__declspec(dllexport) int Run
+(
+	/*[out]*/ char*** array,
+	/*[out]*/ int* length,
+	/*[in]*/ char* name,
+	/*[in]*/ char* argument
+)
 {
 	dr_test_t test;
 	aud_error_t result = AUD_SUCCESS;
 
-	DR_TEST_PRINT("%s: Routing API version %u.%u.%u\n",
-		argv[0], DR_VERSION_MAJOR, DR_VERSION_MINOR, DR_VERSION_BUGFIX);
-
 	memset(&test, 0, sizeof(dr_test_t));
 
-	dr_test_parse_options(&test.options, argc, argv);
+	dr_test_parse_options(&test.options, name);
 
 	// create an environment
-#if DAPI_ENVIRONMENT == DAPI_ENVIRONMENT__EMBEDDED
-	dapi_config_t * dapiConfig = dapi_config_new();
-	if (dapiConfig)
-	{
-		dante_domain_handler_config_t * domainHandlerConfig = dapi_config_get_domain_handler_config(dapiConfig);
-
-		if (domainHandlerConfig)
-		{
-#ifdef WIN32
-			dante_domain_handler_config_set_port(domainHandlerConfig, test.options.domain_handler.port_no);
-#else
-			dante_domain_handler_config_set_unix_path(domainHandlerConfig, test.options.domain_handler.socket_path);
-#endif
-		}
-	}
-
-#if DAPI_HAS_CONFIGURABLE_MDNS_SERVER_PORT == 1
-	if (test.options.mdns_server_port > 0)
-	{
-		dapi_config_set_mdns_server_port(dapiConfig, test.options.mdns_server_port);
-	}
-#endif
-
-	result = dapi_new_config(dapiConfig, &test.dapi);
-
-	dapi_config_delete(dapiConfig);
-#else
 	result = dapi_new(&test.dapi);
-#endif
 	if (result != AUD_SUCCESS)
 	{
 		DR_TEST_ERROR("Error initialising environment: %s\n", dr_error_message(result, g_test_errbuf));
@@ -3507,8 +3291,9 @@ int main(int argc, char * argv[])
 		goto cleanup;
 	}
 #endif
-	// and run the main loop
-	dr_test_main_loop(&test);
+	dapi_utils_step(test.runtime, AUD_SOCKET_INVALID, NULL);
+
+	result = dr_test_process_line(&test, argument, array, length);
 
 cleanup:
 	if (test.device)

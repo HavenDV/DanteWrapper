@@ -519,7 +519,9 @@ dr_test_print_device_txchannels
 void
 dr_test_print_device_rxchannels
 (
-	dr_device_t * device
+	dr_device_t * device,
+	/*[out]*/ char*** array,
+	/*[out]*/ int* count
 ) {
 	unsigned int i, n = dr_device_num_rxchannels(device);
 
@@ -554,13 +556,17 @@ dr_test_print_device_rxchannels
 		-FLOW_FIELD_WIDTH,         "Flow ID"
 	);
 
+	set_output_array_length(n, array, count);
 	for (i = 0; i < n; i++)
 	{
+		const int maxLineSize = 4096;
+		char line[4096];
+
 		dr_rxchannel_t * rxc = dr_device_rxchannel_at_index(device, i);
 		dante_id_t id = dr_rxchannel_get_id(rxc);
 		if (dr_rxchannel_is_stale(rxc))
 		{
-			DR_TEST_PRINT("  %*d %*s %*s %*s %*s %*s %*s %*s %*s\n",
+			SNPRINTF(line, maxLineSize, "  %*d %*s %*s %*s %*s %*s %*s %*s %*s\n",
 				-ID_FIELD_WIDTH,           id,
 				-NAME_FIELD_WIDTH,         "?",
 				-FORMAT_FIELD_WIDTH,       "?",
@@ -666,6 +672,8 @@ dr_test_print_device_rxchannels
 				-FLOW_FIELD_WIDTH,         flow_buf
 			);
 		}
+
+		copy_to_output_array(i, line, array, count);
 	}
 }
 
@@ -1351,6 +1359,37 @@ RXFLOW_ERROR_FLAG_STRINGS[] =
 	"DROPPED_PACKETS",
 	"OUT_OF_ORDER_PACKETS"
 };
+
+
+
+//----------------------------------------------------------
+// Helper functions for marshaling
+//----------------------------------------------------------
+
+static void set_output_array_length
+(
+	/*[in]*/ int value,
+	/*[out]*/ char*** array,
+	/*[out]*/ int* count
+)
+{
+	*count = value;
+	size_t sizeOfArray = sizeof(char*) * value;
+	*array = (char**)CoTaskMemAlloc(sizeOfArray);
+	memset(*array, 0, sizeOfArray);
+}
+
+static void copy_to_output_array
+(
+	/*[in]*/ int i,
+	/*[in]*/ const char* value,
+	/*[out]*/ char*** array,
+	/*[out]*/ int* count
+)
+{
+	(*array)[i] = (char*)CoTaskMemAlloc(strlen(value) + 1);
+	strcpy((*array)[i], value);
+}
 
 void
 dr_test_print_device_rxflow_errors

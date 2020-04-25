@@ -99,7 +99,9 @@ dr_test_print_device_txchannels
 void
 dr_test_print_device_rxchannels
 (
-	dr_device_t * device
+	dr_device_t * device,
+	/*[out]*/ char*** array,
+	/*[out]*/ int* count
 );
 
 void
@@ -145,6 +147,27 @@ dr_test_print_device_rxflow_errors
 //----------------------------------------------------------
 // Actions functions
 //----------------------------------------------------------
+
+
+
+//----------------------------------------------------------
+// Helper functions for marshaling
+//----------------------------------------------------------
+
+static void set_output_array_length
+(
+	/*[in]*/ int value,
+	/*[out]*/ char*** array,
+	/*[out]*/ int* count
+);
+
+static void copy_to_output_array
+(
+	/*[in]*/ int i,
+	/*[in]*/ const char* value,
+	/*[out]*/ char*** array,
+	/*[out]*/ int* count
+);
 
 #endif
 
