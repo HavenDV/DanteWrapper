@@ -568,7 +568,7 @@ dr_test_print_device_rxchannels
 		dante_id_t id = dr_rxchannel_get_id(rxc);
 		if (dr_rxchannel_is_stale(rxc))
 		{
-			DR_TEST_PRINT("  %*d %*s %*s %*s %*s %*s %*s %*s %*s\n",
+			SNPRINTF(line, maxLineSize, "  %*d %*s %*s %*s %*s %*s %*s %*s %*s\n",
 				-ID_FIELD_WIDTH,           id,
 				-NAME_FIELD_WIDTH,         "?",
 				-FORMAT_FIELD_WIDTH,       "?",
@@ -653,7 +653,7 @@ dr_test_print_device_rxchannels
 			}
 			
 
-			DR_TEST_PRINT("  %*d %*s %*s %*s %*s %+*d %*s %*s %*s\n",
+			SNPRINTF(line, maxLineSize, "  %*d %*s %*s %*s %*s %+*d %*s %*s %*s\n",
 				-ID_FIELD_WIDTH,           id,
 				-NAME_FIELD_WIDTH,         name,
 				-FORMAT_FIELD_WIDTH,       format_buf,
