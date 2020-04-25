@@ -7,9 +7,18 @@ namespace DanteWrapperLibrary.Tests
     public class DanteBrowsingTests
     {
         [TestMethod]
-        public void GetNamesTest()
+        public void GetDeviceNamesTest()
         {
-            foreach (var name in DanteBrowsing.GetNames())
+            foreach (var name in DanteBrowsing.GetDeviceNames())
+            {
+                Console.WriteLine(name);
+            }
+        }
+
+        [TestMethod]
+        public void GetRxChannelsTest()
+        {
+            foreach (var name in DanteRouting.GetRxChannels("test"))
             {
                 Console.WriteLine(name);
             }

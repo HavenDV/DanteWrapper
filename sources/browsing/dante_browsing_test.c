@@ -503,10 +503,43 @@ db_browse_test_process_line(db_browse_test_t * test)
 	return AUD_SUCCESS;
 }
 
-__declspec(dllexport) int GetNames
+//----------------------------------------------------------
+// Helper functions for marshaling
+//----------------------------------------------------------
+
+static void set_output_array_length
 (
-	/*[out]*/ char*** ppStringBufferReceiver,
-	/*[out]*/ int* piStringsCountReceiver
+	/*[in]*/ int value,
+	/*[out]*/ char*** array,
+	/*[out]*/ int* count
+) 
+{
+	*count = value;
+	size_t sizeOfArray = sizeof(char*) * value;
+	*array = (char**)CoTaskMemAlloc(sizeOfArray);
+	memset(*array, 0, sizeOfArray);
+}
+
+static void copy_to_output_array
+(
+	/*[in]*/ int i,
+	/*[in]*/ const char* value,
+	/*[out]*/ char*** array,
+	/*[out]*/ int* count
+)
+{
+	(*array)[i] = (char*)CoTaskMemAlloc(strlen(value) + 1);
+	strcpy((*array)[i], value);
+}
+
+//----------------------------------------------------------
+// Entry point
+//----------------------------------------------------------
+
+__declspec(dllexport) int GetDeviceNames
+(
+	/*[out]*/ char*** array,
+	/*[out]*/ int* count
 )
 {
 	signal(SIGINT, sig_handler);
@@ -629,10 +662,7 @@ __declspec(dllexport) int GetNames
 	unsigned int i;
 	const db_browse_network_t* network = db_browse_get_network(test.browse);
 	unsigned int devices_count = db_browse_network_get_num_devices(network);
-	*piStringsCountReceiver = devices_count;
-	size_t stSizeOfArray = sizeof(char*) * devices_count;
-	*ppStringBufferReceiver = (char**)CoTaskMemAlloc(stSizeOfArray);
-	memset(*ppStringBufferReceiver, 0, stSizeOfArray);
+	set_output_array_length(devices_count, array, count);
 	for (i = 0; i < devices_count; i++)
 	{
 		db_browse_device_t* device = db_browse_network_device_at_index(network, i);
@@ -646,9 +676,7 @@ __declspec(dllexport) int GetNames
 		temp = (STRSAFE_LPSTR)CoTaskMemAlloc(alloc_size);
 		StringCchCopyA(temp, alloc_size, name);
 
-		(*ppStringBufferReceiver)[i] = (char*)CoTaskMemAlloc(strlen(name) + 1);
-		strcpy((*ppStringBufferReceiver)[i], name);
-		//ptr[i] = (char*)temp;
+		copy_to_output_array(i, name, array, count);
 	}
 
 	/*
