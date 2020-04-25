@@ -74,7 +74,7 @@ namespace DanteWrapperLibrary
 
         public static void AddTxLabel(string deviceName, int number, string name)
         {
-            Run(deviceName, $"s {number} \"{name}\" +");
+            Run(deviceName, $"l {number} \"{name}\" +");
         }
 
         #endregion
