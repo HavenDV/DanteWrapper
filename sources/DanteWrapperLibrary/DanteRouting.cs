@@ -9,31 +9,74 @@ namespace DanteWrapperLibrary
         #region Imports
 
         [DllImport("dante_routing_test.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int Run(
-            out IntPtr stringArray,
+        private static extern int RunDll(
+            out IntPtr array,
             out int count,
             string name,
             string argument
         );
 
-        private static void Run(string name, string argument)
+        /// <summary>
+        /// Entry point to library
+        /// </summary>
+        /// <param name="array"></param>
+        /// <param name="count"></param>
+        /// <param name="name"></param>
+        /// <param name="argument"></param>
+        /// <exception cref="InvalidOperationException"></exception>
+        /// <returns></returns>
+        private static void Run(out IntPtr array, out int count, string name, string argument)
         {
-            var result = Run(out _, out _, name, argument);
+            var result = RunDll(out array, out count, name, argument);
             if (result != 0)
             {
                 throw new InvalidOperationException($"Bad result: {result}");
             }
         }
 
+        /// <summary>
+        /// Entry point to library(when there is no output)
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="argument"></param>
+        /// <exception cref="InvalidOperationException"></exception>
+        /// <returns></returns>
+        private static void Run(string name, string argument)
+        {
+            Run(out _, out _, name, argument);
+        }
+
+        /// <summary>
+        /// Entry point to library(when the output is an array of strings)
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="argument"></param>
+        /// <exception cref="InvalidOperationException"></exception>
+        /// <returns></returns>
         private static IList<string> RunAndGetStringArray(string name, string argument)
         {
-            var result = Run(out var ptr, out var count, name, argument);
-            if (result != 0)
-            {
-                throw new InvalidOperationException($"Bad result: {result}");
-            }
-
+            Run(out var ptr, out var count, name, argument);
             MarshalUtilities.ToManagedStringArray
+            (
+                ptr,
+                count,
+                out var array
+            );
+
+            return array;
+        }
+
+        /// <summary>
+        /// Entry point to library(when the output is an array of structures)
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="argument"></param>
+        /// <exception cref="InvalidOperationException"></exception>
+        /// <returns></returns>
+        private static IList<T> RunAndGetStructureArray<T>(string name, string argument)
+        {
+            Run(out var ptr, out var count, name, argument);
+            MarshalUtilities.ToManagedStructureArray<T>
             (
                 ptr,
                 count,
