@@ -25,7 +25,7 @@ namespace DanteWrapperLibrary
             }
         }
 
-        private static IList<string> RunAndGetArray(string name, string argument)
+        private static IList<string> RunAndGetStringArray(string name, string argument)
         {
             var result = Run(out var ptr, out var count, name, argument);
             if (result != 0)
@@ -54,12 +54,12 @@ namespace DanteWrapperLibrary
 
         public static IList<string> GetRxChannels(string deviceName)
         {
-            return RunAndGetArray(deviceName, "r");
+            return RunAndGetStringArray(deviceName, "r");
         }
 
         public static IList<string> GetTxChannels(string deviceName)
         {
-            return RunAndGetArray(deviceName, "t");
+            return RunAndGetStringArray(deviceName, "t");
         }
 
         public static void SetSxChannelName(string deviceName, int number, string name)
@@ -69,7 +69,7 @@ namespace DanteWrapperLibrary
 
         public static IList<string> GetLabels(string deviceName)
         {
-            return RunAndGetArray(deviceName, "l");
+            return RunAndGetStringArray(deviceName, "l");
         }
 
         public static void AddTxLabel(string deviceName, int number, string name)
