@@ -12,14 +12,25 @@ namespace DanteWrapperLibrary
             out string[] array
         )
         {
+            ToManagedArray(ptr, count, out array, Marshal.PtrToStringAnsi);
+        }
+
+        public static void ToManagedArray<T>
+        (
+            IntPtr ptr,
+            int count,
+            out T[] array,
+            Func<IntPtr, T> func
+        )
+        {
             var arrayPtr = new IntPtr[count];
-            array = new string[count];
+            array = new T[count];
 
             Marshal.Copy(ptr, arrayPtr, 0, count);
 
             for (var i = 0; i < count; i++)
             {
-                array[i] = Marshal.PtrToStringAnsi(arrayPtr[i]);
+                array[i] = func(arrayPtr[i]);
                 Marshal.FreeCoTaskMem(arrayPtr[i]);
             }
 
