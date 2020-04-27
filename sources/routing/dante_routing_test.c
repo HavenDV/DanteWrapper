@@ -3291,10 +3291,16 @@ __declspec(dllexport) int Run
 		goto cleanup;
 	}
 #endif
-	for (size_t i = 0; i < 15; i++)
-	{
-		dapi_utils_step(test.runtime, AUD_SOCKET_INVALID, NULL);
-	}
+
+	dante_sockets_t step_sockets;
+	do {
+		dapi_utils_step(test.runtime, AUD_SOCKET_INVALID, &step_sockets);
+	} 
+	while (step_sockets.n > 0);
+	//for (size_t i = 0; i < 15; i++)
+	//{
+	//	dapi_utils_step(test.runtime, AUD_SOCKET_INVALID, NULL);
+	//}
 
 	result = dr_test_process_line(&test, argument, array, length);
 
