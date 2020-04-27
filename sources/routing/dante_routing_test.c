@@ -3175,7 +3175,7 @@ static void copy_to_output_array
 // Entry point
 //----------------------------------------------------------
 
-__declspec(dllexport) int Run
+__declspec(dllexport) int RunDll
 (
 	/*[out]*/ char*** array,
 	/*[out]*/ int* length,
