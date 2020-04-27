@@ -14,6 +14,16 @@ namespace DanteWrapperLibrary
         {
             ToManagedArray(ptr, count, out array, Marshal.PtrToStringAnsi);
         }
+        
+        public static void ToManagedStructureArray<T>
+        (
+            IntPtr ptr,
+            int count,
+            out T[] array
+        )
+        {
+            ToManagedArray(ptr, count, out array, Marshal.PtrToStructure<T>);
+        }
 
         public static void ToManagedArray<T>
         (
