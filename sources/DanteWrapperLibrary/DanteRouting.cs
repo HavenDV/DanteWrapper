@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace DanteWrapperLibrary
@@ -93,7 +94,14 @@ namespace DanteWrapperLibrary
 
         public static IList<TxLabelInfo> GetTxLabels(string deviceName)
         {
-            return RunAndGetStructureArray<TxLabelInfo>(deviceName, "l");
+            return RunAndGetStructureArray<InternalTxLabelInfo>(deviceName, "l")
+                .Select(info =>
+                {
+                    MarshalUtilities.ToManagedStringArray(info.labels, info.label_count, out var labels);
+
+                    return new TxLabelInfo(info.id, !Convert.ToBoolean(info.data_exists), info.name, labels);
+                })
+                .ToArray();
         }
 
         public static void AddTxLabel(string deviceName, int number, string name)

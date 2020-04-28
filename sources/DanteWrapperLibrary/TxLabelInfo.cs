@@ -1,15 +1,32 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace DanteWrapperLibrary
 {
     [StructLayout(LayoutKind.Sequential)]
-    public struct TxLabelInfo
+    internal struct InternalTxLabelInfo
     {
         public ushort id;
         public int data_exists;
         public string name;
         public int label_count;
-        [MarshalAs(UnmanagedType.ByValArray, ArraySubType = UnmanagedType.AnsiBStr)]
-        public string[] labels;
+        public IntPtr labels;
+    }
+
+    public class TxLabelInfo
+    {
+        public int Id { get; }
+        public bool IsEmpty { get; }
+        public string Name { get; }
+        public IList<string> Labels { get; }
+
+        public TxLabelInfo(int id, bool isEmpty, string name, IList<string> labels)
+        {
+            Id = id;
+            IsEmpty = isEmpty;
+            Name = name;
+            Labels = labels;
+        }
     }
 }

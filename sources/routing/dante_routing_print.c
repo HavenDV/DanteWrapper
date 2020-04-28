@@ -700,6 +700,27 @@ dr_test_print_channel_txlabels
 	/*[out]*/ char*** array,
 	/*[out]*/ int* count
 ) {
+	/*
+	uint16_t ii, jj;
+	set_output_array_length(sizeof(tx_label_info_t), 3, array, count);
+	for (ii = 0; ii < 3; ii++)
+	{
+		tx_label_info_t info;
+		memset(&info, 0, sizeof(tx_label_info_t));
+		info.data_exists = AUD_FALSE;
+		info.name = "test name";
+
+		set_output_array_length(sizeof(char*), 3, &info.labels, &info.labels_count);
+		for (jj = 0; jj < 3; jj++)
+		{
+			copy_string_to_output_array(jj, "test label", &info.labels);
+		}
+
+		copy_to_output_array(ii, &info, sizeof(tx_label_info_t), array);
+	}
+	return;
+	*/
+
 	aud_error_t result;
 	uint16_t c, num_txlabels = DR_TEST_MAX_TXLABELS;
 	dr_txchannel_t * txc = NULL;

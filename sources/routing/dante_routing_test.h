@@ -117,8 +117,9 @@ dr_test_print_device_txlabels
 void
 dr_test_print_channel_txlabels
 (
-	dr_device_t * device,
+	dr_device_t* device,
 	dante_id_t channel_id,
+	/*[in]*/  int i,
 	/*[out]*/ char*** array,
 	/*[out]*/ int* count
 );
@@ -216,7 +217,7 @@ typedef struct tx_label_info
 	aud_bool_t        data_exists;
 	const char*       name;
 	int               labels_count;
-	const char**      labels;
+	char**            labels;
 } tx_label_info_t;
 
 #endif

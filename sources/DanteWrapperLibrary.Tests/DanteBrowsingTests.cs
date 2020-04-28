@@ -34,11 +34,19 @@ namespace DanteWrapperLibrary.Tests
         }
 
         [TestMethod]
-        public void GetLabelsTest()
+        public void GetTxLabelsTest()
         {
-            foreach (var name in DanteRouting.GetTxLabels("DESKTOP-VSC"))
+            foreach (var info in DanteRouting.GetTxLabels("DESKTOP-VSC"))
             {
-                Console.WriteLine(name);
+                Console.WriteLine($"Id: {info.Id}");
+                Console.WriteLine($"Name: {info.Name}");
+                Console.WriteLine($"IsEmpty: {info.IsEmpty}");
+                Console.WriteLine("Labels:");
+                foreach (var label in info.Labels)
+                {
+                    Console.WriteLine($"-- {label}");
+                }
+                Console.WriteLine();
             }
         }
 

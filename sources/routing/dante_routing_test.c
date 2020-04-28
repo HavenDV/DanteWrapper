@@ -2898,7 +2898,7 @@ dr_test_process_line(
 			}
 			else if (sscanf(buf, "l %u", &in_channel) == 1)
 			{
-				dr_test_print_channel_txlabels(test->device, (dante_id_t) in_channel, array, count);
+				dr_test_print_channel_txlabels(test->device, (dante_id_t) in_channel, 0, array, count);
 			}
 			else if (sscanf(buf, "l %s", in_name) == 1)
 			{
@@ -2913,7 +2913,7 @@ dr_test_process_line(
 			}
 			else
 			{
-				dr_test_print_channel_txlabels(test->device, 0, array, count);
+				dr_test_print_channel_txlabels(test->device, 0, 0, array, count);
 			}
 			break;
 		}
