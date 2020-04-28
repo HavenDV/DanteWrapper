@@ -84,7 +84,16 @@ namespace DanteWrapperLibrary
 
         public static IList<TxChannelInfo> GetTxChannels(string deviceName)
         {
-            return RunAndGetStructureArray<TxChannelInfo>(deviceName, "t");
+            return RunAndGetStructureArray<InternalTxChannelInfo>(deviceName, "t")
+                .Select(info => new TxChannelInfo(
+                    info.id, 
+                    Convert.ToBoolean(info.stale), 
+                    info.name, 
+                    info.format, 
+                    Convert.ToBoolean(info.enabled),
+                    Convert.ToBoolean(info.muted),
+                    info.dbu))
+                .ToArray();
         }
 
         public static void SetSxChannelName(string deviceName, int number, string name)

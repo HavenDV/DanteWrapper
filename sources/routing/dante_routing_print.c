@@ -433,6 +433,26 @@ dr_test_print_device_txchannels
 	/*[out]*/ char*** array,
 	/*[out]*/ int* count
 ) {
+	/*
+	uint16_t ii;
+	set_output_array_length(sizeof(tx_channel_info_t), 3, array, count);
+	for (ii = 0; ii < 3; ii++)
+	{
+		tx_channel_info_t info;
+		memset(&info, 0, sizeof(tx_channel_info_t));
+		info.id = ii;
+		info.stale = ii;
+		info.name = "test name";
+		info.format = "test format";
+		info.enabled = ii;
+		info.muted = ii;
+		info.dbu = ii;
+
+		copy_to_output_array(ii, &info, sizeof(tx_channel_info_t), array);
+	}
+	return;
+	*/
+
 	unsigned int i, n = dr_device_num_txchannels(device);
 
 	enum
