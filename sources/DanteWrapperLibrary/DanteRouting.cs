@@ -10,10 +10,11 @@ namespace DanteWrapperLibrary
 
         [DllImport("dante_routing_test.dll", CallingConvention = CallingConvention.Cdecl)]
         private static extern int RunDll(
+            int argc,
+            string[] argv,
+            string input,
             out IntPtr array,
-            out int count,
-            string name,
-            string argument
+            out int count
         );
 
         /// <summary>
@@ -22,12 +23,12 @@ namespace DanteWrapperLibrary
         /// <param name="array"></param>
         /// <param name="count"></param>
         /// <param name="name"></param>
-        /// <param name="argument"></param>
+        /// <param name="input"></param>
         /// <exception cref="InvalidOperationException"></exception>
         /// <returns></returns>
-        private static void Run(out IntPtr array, out int count, string name, string argument)
+        private static void Run(out IntPtr array, out int count, string name, string input)
         {
-            var result = RunDll(out array, out count, name, argument);
+            var result = RunDll(2, new []{ "DanteRoutingWrapper", name }, input, out array, out count);
             if (result != 0)
             {
                 throw new InvalidOperationException($"Bad result: {result}");
