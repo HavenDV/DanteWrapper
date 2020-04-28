@@ -463,14 +463,16 @@ dr_test_print_device_txchannels
 	set_output_array_length(n, array, count);
 	for (i = 0; i < n; i++)
 	{
-		const int maxLineSize = 4096;
-		char line[4096];
+		tx_channel_info_t info;
+		memset(&info, 0, sizeof(tx_channel_info_t));
 
 		dr_txchannel_t * txc = dr_device_txchannel_at_index(device, i);
 		dante_id_t id = dr_txchannel_get_id(txc);
-		if (dr_txchannel_is_stale(txc))
+		info.id = id;
+		info.stale = dr_txchannel_is_stale(txc);
+		if (info.stale)
 		{
-			SNPRINTF(line, maxLineSize, "  %*d %*s %*s %*s %*s %*s",
+			DR_TEST_PRINT("  %*d %*s %*s %*s %*s %*s",
 				-ID_FIELD_WIDTH,      id,
 				-NAME_FIELD_WIDTH,    "?",
 				-FORMAT_FIELD_WIDTH,  "?",
@@ -481,7 +483,7 @@ dr_test_print_device_txchannels
 		}
 		else
 		{
-			
+
 			const char * name = dr_txchannel_get_canonical_name(txc);
 			char format[512];
 			aud_bool_t enabled = dr_txchannel_is_enabled(txc);
@@ -504,7 +506,7 @@ dr_test_print_device_txchannels
 				dr_test_print_formats(dr_txchannel_get_formats(txc), format, sizeof(format));
 			}
 			
-			SNPRINTF(line, maxLineSize, "  %*d %*s %*s %*s %*s %+*d",
+			DR_TEST_PRINT("  %*d %*s %*s %*s %*s %+*d",
 				-ID_FIELD_WIDTH,      id,
 				-NAME_FIELD_WIDTH,    name,
 				-FORMAT_FIELD_WIDTH,  format,
@@ -512,9 +514,15 @@ dr_test_print_device_txchannels
 				-MUTED_FIELD_WIDTH,   (muted ? "true" : "false"),
 				-DBU_FIELD_WIDTH,     (dbu == DANTE_DBU_UNSET ? 0 : (int)dbu)
 			);
+
+			info.name = name;
+			info.format = format;
+			info.enabled = enabled;
+			info.muted = muted;
+			info.dbu = dbu;
 		}
 
-		copy_to_output_array(i, line, array, count);
+		copy_to_output_array(i, &info, sizeof(tx_channel_info_t), array);
 	}
 }
 
@@ -666,7 +674,7 @@ dr_test_print_device_rxchannels
 			);
 		}
 
-		copy_to_output_array(i, line, array, count);
+		copy_string_to_output_array(i, line, array);
 	}
 }
 
@@ -707,7 +715,7 @@ dr_test_print_channel_txlabels
 
 				SNPRINTF(line, maxLineSize, "NO DATA for channel %u", c+1);
 
-				copy_to_output_array(channel_id, line, array, count);
+				copy_string_to_output_array(channel_id, line, array);
 			}
 		}
 		return;
@@ -737,7 +745,7 @@ dr_test_print_channel_txlabels
 		SNPRINTF(line + strlen(line), maxLineSize, " \"%s\"", g_test_labels[c].name);
 	}
 
-	copy_to_output_array(channel_id, line, array, count);
+	copy_string_to_output_array(channel_id, line, array);
 }
 
 
@@ -1388,9 +1396,20 @@ static void set_output_array_length
 static void copy_to_output_array
 (
 	/*[in]*/ int i,
+	/*[in]*/ const void* value,
+	/*[in]*/ int size,
+	/*[out]*/ void*** array
+)
+{
+	(*array)[i] = (void*)CoTaskMemAlloc(size);
+	memcpy((*array)[i], value, size);
+}
+
+static void copy_string_to_output_array
+(
+	/*[in]*/ int i,
 	/*[in]*/ const char* value,
-	/*[out]*/ char*** array,
-	/*[out]*/ int* count
+	/*[out]*/ char*** array
 )
 {
 	(*array)[i] = (char*)CoTaskMemAlloc(strlen(value) + 1);

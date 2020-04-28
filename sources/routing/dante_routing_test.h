@@ -168,10 +168,32 @@ static void set_output_array_length
 static void copy_to_output_array
 (
 	/*[in]*/ int i,
-	/*[in]*/ const char* value,
-	/*[out]*/ char*** array,
-	/*[out]*/ int* count
+	/*[in]*/ const void* value,
+	/*[in]*/ int size,
+	/*[out]*/ void*** array
 );
+
+static void copy_string_to_output_array
+(
+	/*[in]*/ int i,
+	/*[in]*/ const char* value,
+	/*[out]*/ char*** array
+);
+
+//----------------------------------------------------------
+// Structures for .Net Wrapper
+//----------------------------------------------------------
+
+typedef struct tx_channel_info
+{
+	dante_id_t     id;
+	aud_bool_t     stale;
+	const char*    name;
+	const char*    format;
+	aud_bool_t     enabled;
+	aud_bool_t     muted;
+	dante_dbu_t    dbu;
+} tx_channel_info_t;
 
 #endif
 

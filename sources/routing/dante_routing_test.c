@@ -3270,36 +3270,6 @@ dr_test_process_line(
 }
 
 
-//----------------------------------------------------------
-// Helper functions for marshaling
-//----------------------------------------------------------
-
-static void set_output_array_length
-(
-	/*[in]*/ int value,
-	/*[out]*/ char*** array,
-	/*[out]*/ int* count
-)
-{
-	*count = value;
-	size_t sizeOfArray = sizeof(char*) * value;
-	*array = (char**)CoTaskMemAlloc(sizeOfArray);
-	memset(*array, 0, sizeOfArray);
-}
-
-static void copy_to_output_array
-(
-	/*[in]*/ int i,
-	/*[in]*/ const char* value,
-	/*[out]*/ char*** array,
-	/*[out]*/ int* count
-)
-{
-	(*array)[i] = (char*)CoTaskMemAlloc(strlen(value) + 1);
-	strcpy((*array)[i], value);
-}
-
-
 static aud_error_t
 dr_test_main_loop
 (

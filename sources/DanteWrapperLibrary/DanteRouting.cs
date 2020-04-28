@@ -101,9 +101,9 @@ namespace DanteWrapperLibrary
             return RunAndGetStringArray(deviceName, "r");
         }
 
-        public static IList<string> GetTxChannels(string deviceName)
+        public static IList<TxChannelInfo> GetTxChannels(string deviceName)
         {
-            return RunAndGetStringArray(deviceName, "t");
+            return RunAndGetStructureArray<TxChannelInfo>(deviceName, "t");
         }
 
         public static void SetSxChannelName(string deviceName, int number, string name)
