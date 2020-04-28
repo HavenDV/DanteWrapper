@@ -99,7 +99,7 @@ namespace DanteWrapperLibrary
                 {
                     MarshalUtilities.ToManagedStringArray(info.labels, info.label_count, out var labels);
 
-                    return new TxLabelInfo(info.id, !Convert.ToBoolean(info.data_exists), info.name, labels);
+                    return new TxLabelInfo(info.id, Convert.ToBoolean(info.is_empty), info.name, labels);
                 })
                 .ToArray();
         }

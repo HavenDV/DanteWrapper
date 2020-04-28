@@ -214,7 +214,7 @@ typedef struct rx_channel_info
 typedef struct tx_label_info
 {
 	dante_id_t        id;
-	aud_bool_t        data_exists;
+	aud_bool_t        is_empty;
 	const char*       name;
 	int               labels_count;
 	char**            labels;

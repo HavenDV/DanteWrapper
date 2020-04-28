@@ -8,7 +8,7 @@ namespace DanteWrapperLibrary
     internal struct InternalTxLabelInfo
     {
         public ushort id;
-        public int data_exists;
+        public int is_empty;
         public string name;
         public int label_count;
         public IntPtr labels;

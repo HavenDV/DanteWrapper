@@ -707,7 +707,7 @@ dr_test_print_channel_txlabels
 	{
 		tx_label_info_t info;
 		memset(&info, 0, sizeof(tx_label_info_t));
-		info.data_exists = AUD_FALSE;
+		info.is_empty = AUD_TRUE;
 		info.name = "test name";
 
 		set_output_array_length(sizeof(char*), 3, &info.labels, &info.labels_count);
@@ -745,7 +745,7 @@ dr_test_print_channel_txlabels
 			{
 				tx_label_info_t info;
 				memset(&info, 0, sizeof(tx_label_info_t));
-				info.data_exists = AUD_FALSE;
+				info.is_empty = AUD_TRUE;
 				set_output_array_length(sizeof(char*), 0, &info.labels, &info.labels_count);
 
 				DR_TEST_PRINT("NO DATA for channel %u", c+1);
@@ -775,7 +775,7 @@ dr_test_print_channel_txlabels
 
 	// now print...
 	const char* name = dr_txchannel_get_canonical_name(txc);
-	info.data_exists = AUD_TRUE;
+	info.is_empty = AUD_FALSE;
 	info.id = channel_id;
 	info.name = name;
 
