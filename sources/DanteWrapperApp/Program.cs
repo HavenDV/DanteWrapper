@@ -15,8 +15,8 @@ namespace DanteWrapperApp
                 Console.WriteLine($"Format: {info.Format}");
                 Console.WriteLine($"Latency: {info.Latency}");
                 Console.WriteLine($"IsMuted: {info.IsMuted}");
-                Console.WriteLine($"Dbu: {info.Dbu}");
-                Console.WriteLine($"Sub: {info.Sub}");
+                Console.WriteLine($"SignalReferenceLevel: {info.SignalReferenceLevel}");
+                Console.WriteLine($"Subscription: {info.Subscription}");
                 Console.WriteLine($"Status: {info.Status}");
                 Console.WriteLine($"Flow: {info.Flow}");
                 Console.WriteLine();

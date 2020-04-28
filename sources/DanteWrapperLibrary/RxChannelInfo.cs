@@ -9,7 +9,7 @@ namespace DanteWrapperLibrary
         public int stale;
         public string name;
         public string format;
-        public string latency;
+        public uint latency;
         public int muted;
         public short dbu;
         public string sub;
@@ -234,33 +234,35 @@ namespace DanteWrapperLibrary
         public bool IsStale { get; }
         public string Name { get; }
         public string Format { get; }
-        public string Latency { get; }
+        public int Latency { get; }
         public bool IsMuted { get; }
 
         /// <summary>
         /// -1 if it's unset <br/>
         /// -2 if it's invalid/uninitialised
         /// </summary>
-        public int Dbu { get; }
-        public string Sub { get; }
+        public int SignalReferenceLevel { get; }
+        public string Subscription { get; }
         public RxStatus Status { get; }
         public string Flow { get; }
 
-        public RxChannelInfo(int id, bool isStale, string name, string format, string latency, bool isMuted, int dbu, string sub, int status, string flow)
+        public RxChannelInfo(
+            int id, bool isStale, string name, string format, uint latency, 
+            bool isMuted, int dbu, string sub, int status, string flow)
         {
             Id = id;
             IsStale = isStale;
             Name = name;
             Format = format;
-            Latency = latency;
+            Latency = (int)latency;
             IsMuted = isMuted;
-            Dbu = dbu switch
+            SignalReferenceLevel = dbu switch
             {
                 0x7FFF => -1,
                 0x7FFE => -2,
                 _ => dbu
             };
-            Sub = sub;
+            Subscription = sub;
             Status = (RxStatus)status;
             Flow = flow;
         }

@@ -720,7 +720,7 @@ dr_test_print_device_rxchannels
 
 			info.name = name;
 			info.format = format_buf;
-			info.latency = latency_buf;
+			info.latency = latency;
 			info.muted = muted;
 			info.dbu = dbu;
 			info.sub = sub;

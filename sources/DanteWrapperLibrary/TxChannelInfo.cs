@@ -27,7 +27,7 @@ namespace DanteWrapperLibrary
         /// -1 if it's unset <br/>
         /// -2 if it's invalid/uninitialised
         /// </summary>
-        public int Dbu { get; }
+        public int SignalReferenceLevel { get; }
 
         public TxChannelInfo(int id, bool isStale, string name, string format, bool isEnabled, bool isMuted, int dbu)
         {
@@ -37,7 +37,7 @@ namespace DanteWrapperLibrary
             Format = format;
             IsEnabled = isEnabled;
             IsMuted = isMuted;
-            Dbu = dbu switch
+            SignalReferenceLevel = dbu switch
             {
                 0x7FFF => -1,
                 0x7FFE => -2,
