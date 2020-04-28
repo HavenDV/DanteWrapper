@@ -210,5 +210,14 @@ typedef struct rx_channel_info
 	const char*       flow;
 } rx_channel_info_t;
 
+typedef struct tx_label_info
+{
+	dante_id_t        id;
+	aud_bool_t        data_exists;
+	const char*       name;
+	int               labels_count;
+	const char**      labels;
+} tx_label_info_t;
+
 #endif
 

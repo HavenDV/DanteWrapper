@@ -36,7 +36,7 @@ namespace DanteWrapperLibrary.Tests
         [TestMethod]
         public void GetLabelsTest()
         {
-            foreach (var name in DanteRouting.GetLabels("DESKTOP-VSC"))
+            foreach (var name in DanteRouting.GetTxLabels("DESKTOP-VSC"))
             {
                 Console.WriteLine(name);
             }

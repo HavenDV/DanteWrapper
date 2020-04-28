@@ -48,26 +48,6 @@ namespace DanteWrapperLibrary
         }
 
         /// <summary>
-        /// Entry point to library(when the output is an array of strings)
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="argument"></param>
-        /// <exception cref="InvalidOperationException"></exception>
-        /// <returns></returns>
-        private static IList<string> RunAndGetStringArray(string name, string argument)
-        {
-            Run(out var ptr, out var count, name, argument);
-            MarshalUtilities.ToManagedStringArray
-            (
-                ptr,
-                count,
-                out var array
-            );
-
-            return array;
-        }
-
-        /// <summary>
         /// Entry point to library(when the output is an array of structures)
         /// </summary>
         /// <param name="name"></param>
@@ -111,9 +91,9 @@ namespace DanteWrapperLibrary
             Run(deviceName, $"s {number} \"{name}\"");
         }
 
-        public static IList<string> GetLabels(string deviceName)
+        public static IList<TxLabelInfo> GetTxLabels(string deviceName)
         {
-            return RunAndGetStringArray(deviceName, "l");
+            return RunAndGetStructureArray<TxLabelInfo>(deviceName, "l");
         }
 
         public static void AddTxLabel(string deviceName, int number, string name)

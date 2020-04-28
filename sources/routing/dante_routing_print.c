@@ -696,6 +696,7 @@ dr_test_print_channel_txlabels
 (
 	dr_device_t * device,
 	dante_id_t channel_id,
+	/*[in]*/  int i,
 	/*[out]*/ char*** array,
 	/*[out]*/ int* count
 ) {
@@ -710,30 +711,32 @@ dr_test_print_channel_txlabels
 			DR_TEST_PRINT("WARNING: this component has been marked as stale and needs updating\n");
 		}
 
-		set_output_array_length(sizeof(char*), n, array, count);
+		set_output_array_length(sizeof(tx_label_info_t), n, array, count);
 		for (c = 0; c < n; c++)
 		{
 			txc = dr_device_txchannel_at_index(device, c);
 			dante_id_t curr_channel_id = dr_txchannel_get_id(txc);
 			if (curr_channel_id)
 			{
-				dr_test_print_channel_txlabels(device, curr_channel_id, array, count);
+				dr_test_print_channel_txlabels(device, curr_channel_id, c, array, count);
 			}
 			else
 			{
-				const int maxLineSize = 4096;
-				char line[4096];
+				tx_label_info_t info;
+				memset(&info, 0, sizeof(tx_label_info_t));
+				info.data_exists = AUD_FALSE;
+				set_output_array_length(sizeof(char*), 0, &info.labels, &info.labels_count);
 
-				SNPRINTF(line, maxLineSize, "NO DATA for channel %u", c+1);
+				DR_TEST_PRINT("NO DATA for channel %u", c+1);
 
-				copy_string_to_output_array(channel_id, line, array);
+				copy_to_output_array(c, &info, sizeof(tx_label_info_t), array);
 			}
 		}
 		return;
 	}
 
-	const int maxLineSize = 4096;
-	char line[4096];
+	tx_label_info_t info;
+	memset(&info, 0, sizeof(tx_label_info_t));
 
 	txc = dr_device_txchannel_with_id(device, channel_id);
 	result = dr_txchannel_get_txlabels(txc, &num_txlabels, g_test_labels);
@@ -750,15 +753,22 @@ dr_test_print_channel_txlabels
 	}
 
 	// now print...
-	SNPRINTF(line, maxLineSize, "%3u: \"%s\"", channel_id, dr_txchannel_get_canonical_name(txc));
+	const char* name = dr_txchannel_get_canonical_name(txc);
+	info.data_exists = AUD_TRUE;
+	info.id = channel_id;
+	info.name = name;
+
+	DR_TEST_PRINT("%3u: \"%s\"", channel_id, name);
+	set_output_array_length(sizeof(char*), num_txlabels, &info.labels, &info.labels_count);
 	for (c = 0; c < num_txlabels; c++)
 	{
-		SNPRINTF(line + strlen(line), maxLineSize, " \"%s\"", g_test_labels[c].name);
+		DR_TEST_PRINT(" \"%s\"", g_test_labels[c].name);
+
+		copy_string_to_output_array(c, g_test_labels[c].name, &info.labels);
 	}
 
-	copy_string_to_output_array(channel_id, line, array);
+	copy_to_output_array(i, &info, sizeof(tx_label_info_t), array);
 }
-
 
 void
 dr_test_print_device_txlabels
