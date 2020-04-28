@@ -5,12 +5,12 @@ namespace DanteWrapperLibrary
     [StructLayout(LayoutKind.Sequential)]
     public struct TxChannelInfo
     {
-        public uint id;
-        public bool stale;
+        public ushort id;
+        public int stale;
         public string name;
         public string format;
-        public bool enabled;
-        public bool muted;
-        public uint dbu;
+        public int enabled;
+        public int muted;
+        public short dbu;
     }
 }
