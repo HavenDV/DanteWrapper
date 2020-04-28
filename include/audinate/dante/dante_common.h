@@ -1304,6 +1304,7 @@ dante_sockets_add_read
 #ifdef WIN32
 #pragma warning(push)
 #pragma warning(disable:4127)
+#pragma warning(disable:6319)
 	if (!FD_ISSET(s, &sockets->read_fds))
 	{
 		FD_SET(s, &sockets->read_fds);
@@ -1334,6 +1335,7 @@ dante_sockets_add_write
 #ifdef WIN32
 #pragma warning(push)
 #pragma warning(disable:4127)
+#pragma warning(disable:6319)
 	if (!FD_ISSET(s, &sockets->write_fds))
 	{
 		FD_SET(s, &sockets->write_fds);
@@ -1364,6 +1366,7 @@ dante_sockets_remove_read
 #ifdef WIN32
 #pragma warning(push)
 #pragma warning(disable:4127)
+#pragma warning(disable:6319)
 	if (FD_ISSET(s, &sockets->read_fds))
 	{
 		FD_CLR(s, &sockets->read_fds);
@@ -1405,6 +1408,7 @@ dante_sockets_remove_write
 #ifdef WIN32
 #pragma warning(push)
 #pragma warning(disable:4127)
+#pragma warning(disable:6319)
 	if (FD_ISSET(s, &sockets->write_fds))
 	{
 		FD_CLR(s, &sockets->write_fds);
