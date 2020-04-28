@@ -564,7 +564,7 @@ dr_test_print_device_rxchannels
 		info.stale = ii;
 		info.name = "test name";
 		info.format = "test format";
-		info.latency = "test latency";
+		info.latency = 321;
 		info.muted = ii;
 		info.dbu = ii;
 		info.sub = "test sub";
