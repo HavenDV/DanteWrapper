@@ -125,23 +125,35 @@ ddh_change_event_fn db_test_event_handle_ddh_changes;
 
 static void set_output_array_length
 (
-	/*[in]*/ int value,
-	/*[out]*/ char*** array,
+	/*[in]*/ int size,
+	/*[in]*/ int n,
+	/*[out]*/ void*** array,
 	/*[out]*/ int* count
 )
 {
-	*count = value;
-	size_t sizeOfArray = sizeof(char*) * value;
-	*array = (char**)CoTaskMemAlloc(sizeOfArray);
+	*count = n;
+	size_t sizeOfArray = size * n;
+	*array = (void**)CoTaskMemAlloc(sizeOfArray);
 	memset(*array, 0, sizeOfArray);
 }
 
 static void copy_to_output_array
 (
 	/*[in]*/ int i,
+	/*[in]*/ const void* value,
+	/*[in]*/ int size,
+	/*[out]*/ void*** array
+)
+{
+	(*array)[i] = (void*)CoTaskMemAlloc(size);
+	memcpy((*array)[i], value, size);
+}
+
+static void copy_string_to_output_array
+(
+	/*[in]*/ int i,
 	/*[in]*/ const char* value,
-	/*[out]*/ char*** array,
-	/*[out]*/ int* count
+	/*[out]*/ char*** array
 )
 {
 	(*array)[i] = (char*)CoTaskMemAlloc(strlen(value) + 1);
@@ -786,7 +798,7 @@ db_browse_test_process_line(
 		const db_browse_network_t * network = db_browse_get_network(test->browse);
 
 		unsigned int n = db_browse_network_get_num_devices(network);
-		set_output_array_length(n, array, count);
+		set_output_array_length(sizeof(char*), n, array, count);
 		for (i = 0; i < n; i++)
 		{
 			db_browse_device_t * device = db_browse_network_device_at_index(network, i);
@@ -799,7 +811,7 @@ db_browse_test_process_line(
 			}
 			printf("Reconfirming device '%s'\n", name);
 
-			copy_to_output_array(i, name, array, count);
+			copy_string_to_output_array(i, name, array);
 		}
 	}
 	else if (sscanf(buf, "%c %c", &in_action, &in_type) == 2 && in_action == 'r' && in_type == 'b')
