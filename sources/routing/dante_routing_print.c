@@ -569,14 +569,16 @@ dr_test_print_device_rxchannels
 	set_output_array_length(n, array, count);
 	for (i = 0; i < n; i++)
 	{
-		const int maxLineSize = 4096;
-		char line[4096];
+		rx_channel_info_t info;
+		memset(&info, 0, sizeof(rx_channel_info_t));
 
 		dr_rxchannel_t * rxc = dr_device_rxchannel_at_index(device, i);
 		dante_id_t id = dr_rxchannel_get_id(rxc);
-		if (dr_rxchannel_is_stale(rxc))
+		info.id = id;
+		info.stale = dr_rxchannel_is_stale(rxc);
+		if (info.stale)
 		{
-			SNPRINTF(line, maxLineSize, "  %*d %*s %*s %*s %*s %*s %*s %*s %*s",
+			DR_TEST_PRINT("  %*d %*s %*s %*s %*s %*s %*s %*s %*s",
 				-ID_FIELD_WIDTH,           id,
 				-NAME_FIELD_WIDTH,         "?",
 				-FORMAT_FIELD_WIDTH,       "?",
@@ -661,7 +663,7 @@ dr_test_print_device_rxchannels
 			}
 			
 
-			SNPRINTF(line, maxLineSize, "  %*d %*s %*s %*s %*s %+*d %*s %*s %*s",
+			DR_TEST_PRINT("  %*d %*s %*s %*s %*s %+*d %*s %*s %*s",
 				-ID_FIELD_WIDTH,           id,
 				-NAME_FIELD_WIDTH,         name,
 				-FORMAT_FIELD_WIDTH,       format_buf,
@@ -672,9 +674,18 @@ dr_test_print_device_rxchannels
 				-STATUS_FIELD_WIDTH,       ((status != DANTE_RXSTATUS_NONE) ? dante_rxstatus_to_string(status) : "-"),
 				-FLOW_FIELD_WIDTH,         flow_buf
 			);
+
+			info.name = name;
+			info.format = format_buf;
+			info.latency = latency_buf;
+			info.muted = muted;
+			info.dbu = dbu;
+			info.sub = sub;
+			info.status = status;
+			info.flow = flow_buf;
 		}
 
-		copy_string_to_output_array(i, line, array);
+		copy_to_output_array(i, &info, sizeof(rx_channel_info_t), array);
 	}
 }
 

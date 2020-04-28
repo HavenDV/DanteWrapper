@@ -195,5 +195,19 @@ typedef struct tx_channel_info
 	dante_dbu_t    dbu;
 } tx_channel_info_t;
 
+typedef struct rx_channel_info
+{
+	dante_id_t        id;
+	aud_bool_t        stale;
+	const char*       name;
+	const char*       format;
+	const char*       latency;
+	aud_bool_t        muted;
+	dante_dbu_t       dbu;
+	const char*       sub;
+	dante_rxstatus_t  status;
+	const char*       flow;
+} rx_channel_info_t;
+
 #endif
 

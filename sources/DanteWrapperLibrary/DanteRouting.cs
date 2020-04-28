@@ -96,9 +96,9 @@ namespace DanteWrapperLibrary
             Run(deviceName, $"r {number} \"{name}\"");
         }
 
-        public static IList<string> GetRxChannels(string deviceName)
+        public static IList<RxChannelInfo> GetRxChannels(string deviceName)
         {
-            return RunAndGetStringArray(deviceName, "r");
+            return RunAndGetStructureArray<RxChannelInfo>(deviceName, "r");
         }
 
         public static IList<TxChannelInfo> GetTxChannels(string deviceName)
