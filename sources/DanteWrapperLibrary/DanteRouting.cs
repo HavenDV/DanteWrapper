@@ -79,7 +79,19 @@ namespace DanteWrapperLibrary
 
         public static IList<RxChannelInfo> GetRxChannels(string deviceName)
         {
-            return RunAndGetStructureArray<RxChannelInfo>(deviceName, "r");
+            return RunAndGetStructureArray<InternalRxChannelInfo>(deviceName, "r")
+                .Select(info => new RxChannelInfo(
+                    info.id,
+                    Convert.ToBoolean(info.stale),
+                    info.name,
+                    info.format,
+                    info.latency,
+                    Convert.ToBoolean(info.muted),
+                    info.dbu,
+                    info.sub,
+                    info.status,
+                    info.flow))
+                .ToArray();
         }
 
         public static IList<TxChannelInfo> GetTxChannels(string deviceName)
