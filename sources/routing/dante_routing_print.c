@@ -460,7 +460,7 @@ dr_test_print_device_txchannels
 		-DBU_FIELD_WIDTH,     "dBu"
 	);
 
-	set_output_array_length(n, array, count);
+	set_output_array_length(sizeof(tx_channel_info_t), n, array, count);
 	for (i = 0; i < n; i++)
 	{
 		tx_channel_info_t info;
@@ -566,7 +566,7 @@ dr_test_print_device_rxchannels
 		-FLOW_FIELD_WIDTH,         "Flow ID"
 	);
 
-	set_output_array_length(n, array, count);
+	set_output_array_length(sizeof(rx_channel_info_t), n, array, count);
 	for (i = 0; i < n; i++)
 	{
 		rx_channel_info_t info;
@@ -710,7 +710,7 @@ dr_test_print_channel_txlabels
 			DR_TEST_PRINT("WARNING: this component has been marked as stale and needs updating\n");
 		}
 
-		set_output_array_length(n, array, count);
+		set_output_array_length(sizeof(char*), n, array, count);
 		for (c = 0; c < n; c++)
 		{
 			txc = dr_device_txchannel_at_index(device, c);
@@ -1393,14 +1393,15 @@ RXFLOW_ERROR_FLAG_STRINGS[] =
 
 static void set_output_array_length
 (
-	/*[in]*/ int value,
-	/*[out]*/ char*** array,
+	/*[in]*/ int size,
+	/*[in]*/ int n,
+	/*[out]*/ void*** array,
 	/*[out]*/ int* count
 )
 {
-	*count = value;
-	size_t sizeOfArray = sizeof(char*) * value;
-	*array = (char**)CoTaskMemAlloc(sizeOfArray);
+	*count = n;
+	size_t sizeOfArray = size * n;
+	*array = (void**)CoTaskMemAlloc(sizeOfArray);
 	memset(*array, 0, sizeOfArray);
 }
 

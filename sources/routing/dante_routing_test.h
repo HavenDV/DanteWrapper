@@ -160,8 +160,9 @@ dr_test_print_device_rxflow_errors
 
 static void set_output_array_length
 (
-	/*[in]*/ int value,
-	/*[out]*/ char*** array,
+	/*[in]*/ int size,
+	/*[in]*/ int n,
+	/*[out]*/ void*** array,
 	/*[out]*/ int* count
 );
 
