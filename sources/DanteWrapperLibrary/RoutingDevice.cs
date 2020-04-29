@@ -41,13 +41,13 @@ namespace DanteWrapperLibrary
 
             IntPtr = DanteRouting.OpenDevice(Name);
 
-            Task.Run(() =>
+            Task.Factory.StartNew(() =>
             {
                 while (IntPtr != IntPtr.Zero)
                 {
                     DanteRouting.PerformNextDeviceStep(IntPtr);
                 }
-            });
+            }, TaskCreationOptions.LongRunning);
         }
 
         public IList<RxChannelInfo> GetRxChannels()
