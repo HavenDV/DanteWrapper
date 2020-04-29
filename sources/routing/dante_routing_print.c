@@ -750,6 +750,7 @@ dr_test_print_channel_txlabels
 	{
 		tx_label_info_t info;
 		memset(&info, 0, sizeof(tx_label_info_t));
+		info.id = ii;
 		info.is_empty = AUD_TRUE;
 		info.name = "test name";
 

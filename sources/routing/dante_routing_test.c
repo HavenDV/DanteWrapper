@@ -3543,3 +3543,196 @@ cleanup:
 	}
 	return result;
 }
+
+__declspec(dllexport) void close
+(
+	/*[in/out]*/ dr_test_t** test
+)
+{
+	if ((*test)->device)
+	{
+		dr_device_close((*test)->device);
+	}
+	if ((*test)->devices)
+	{
+		dr_devices_delete((*test)->devices);
+	}
+	if ((*test)->dapi)
+	{
+		dapi_delete((*test)->dapi);
+	}
+}
+
+__declspec(dllexport) int open
+(
+	/*[in]*/ int argc,
+	/*[in]*/ char* argv[],
+	/*[out]*/ dr_test_t** test
+)
+{
+	*test = (dr_test_t*)CoTaskMemAlloc(sizeof(dr_test_t));
+	memset(*test, 0, sizeof(dr_test_t));
+
+	DR_TEST_PRINT("%s: Routing API version %u.%u.%u\n",
+		argv[0], DR_VERSION_MAJOR, DR_VERSION_MINOR, DR_VERSION_BUGFIX);
+
+	aud_error_t result = AUD_SUCCESS;
+
+	dr_test_parse_options(&(*test)->options, argc, argv);
+
+	// create an environment
+#if DAPI_ENVIRONMENT == DAPI_ENVIRONMENT__EMBEDDED
+	dapi_config_t* dapiConfig = dapi_config_new();
+	if (dapiConfig)
+	{
+		dante_domain_handler_config_t* domainHandlerConfig = dapi_config_get_domain_handler_config(dapiConfig);
+
+		if (domainHandlerConfig)
+		{
+#ifdef WIN32
+			dante_domain_handler_config_set_port(domainHandlerConfig, test.options.domain_handler.port_no);
+#else
+			dante_domain_handler_config_set_unix_path(domainHandlerConfig, test.options.domain_handler.socket_path);
+#endif
+		}
+	}
+
+#if DAPI_HAS_CONFIGURABLE_MDNS_SERVER_PORT == 1
+	if (test.options.mdns_server_port > 0)
+	{
+		dapi_config_set_mdns_server_port(dapiConfig, test.options.mdns_server_port);
+	}
+#endif
+
+	result = dapi_new_config(dapiConfig, &test.dapi);
+
+	dapi_config_delete(dapiConfig);
+#else
+	result = dapi_new(&(*test)->dapi);
+#endif
+	if (result != AUD_SUCCESS)
+	{
+		DR_TEST_ERROR("Error initialising environment: %s\n", dr_error_message(result, g_test_errbuf));
+		goto cleanup;
+	}
+
+	(*test)->env = dapi_get_env((*test)->dapi);
+	(*test)->handler = dapi_get_domain_handler((*test)->dapi);
+	(*test)->runtime = dapi_get_runtime((*test)->dapi);
+
+	//aud_log_set_threshold(aud_env_get_log(test.env), AUD_LOGTYPE_STDOUT, AUD_LOG_DEBUG);
+
+	// create a devices structure and set its options
+	result = dr_devices_new_dapi((*test)->dapi, &(*test)->devices);
+	if (result != AUD_SUCCESS)
+	{
+		DR_TEST_ERROR("Error creating device factory: %s\n", dr_error_message(result, g_test_errbuf));
+		goto cleanup;
+	}
+	dr_devices_set_context((*test)->devices, test);
+	if ((*test)->options.num_handles)
+	{
+		result = dr_devices_set_num_handles((*test)->devices, (*test)->options.num_handles);
+		if (result != AUD_SUCCESS)
+		{
+			DR_TEST_ERROR("Error setting num_handles to %d: %s\n", (*test)->options.num_handles, dr_error_message(result, g_test_errbuf));
+			goto cleanup;
+		}
+	}
+	if ((*test)->options.request_limit)
+	{
+		result = dr_devices_set_request_limit((*test)->devices, (*test)->options.request_limit);
+		if (result != AUD_SUCCESS)
+		{
+			DR_TEST_ERROR("Error setting request_limit to %d: %s\n", (*test)->options.request_limit, dr_error_message(result, g_test_errbuf));
+			goto cleanup;
+		}
+	}
+
+#if DAPI_ENVIRONMENT == DAPI_ENVIRONMENT__STANDALONE
+	result = dapi_utils_ddm_connect_blocking(&(*test)->options.ddm_config, (*test)->handler, (*test)->runtime, &g_test_running);
+	if (result != AUD_SUCCESS)
+	{
+		DR_TEST_ERROR("Error connecting to DDM: %s\n", dr_error_message(result, g_test_errbuf));
+		goto cleanup;
+	}
+#endif
+
+#ifdef DANTE_ROUTING_TEST_CUSTOM_CONFIG_OPTIONS
+	DANTE_ROUTING_TEST_CUSTOM_CONFIG_OPTIONS(&test);
+#endif
+
+	// Print current domain info before doing anything else
+	printf("Current domain configuration:\n");
+	dapi_utils_print_domain_handler_info((*test)->handler);
+	dante_domain_handler_set_context((*test)->handler, *test);
+	dante_domain_handler_set_event_fn((*test)->handler, dr_test_event_handle_ddh_changes);
+
+#if DAPI_ENVIRONMENT == DAPI_ENVIRONMENT__EMBEDDED
+	// Some embedded platforms support asynchronous connection to the dante device.
+	// Opening a device is not possible while in the NONE domain,
+	// so wait till domain uuid is available
+	while (IS_NO_DOMAIN_UUID(dr_devices_get_domain_uuid((*test)->devices)))
+	{
+		dapi_utils_step((*test)->runtime, AUD_SOCKET_INVALID, NULL);
+	}
+#endif
+
+#if DAPI_ENVIRONMENT == DAPI_ENVIRONMENT__STANDALONE
+	dante_domain_info_t info = dante_domain_handler_get_current_domain((*test)->handler);
+	aud_bool_t skip_device_open = AUD_FALSE;
+	//Is current domain the one that we want to be on?
+	if ((*test)->options.ddm_config.domain[0] && strcmp(info.name, (*test)->options.ddm_config.domain))
+	{
+		if (IS_ADHOC_DOMAIN_UUID(info.uuid))
+		{
+			printf("WARNING: Current domain set to ADHOC\n\n");
+			printf("WARNING: Unable to open the device as requested domain is not available\n");
+			skip_device_open = AUD_TRUE;
+		}
+	}
+	if (!skip_device_open)
+	{
+		// Now open a device connection
+		result = dr_test_open(*test);
+		if (result != AUD_SUCCESS)
+		{
+			goto cleanup;
+		}
+	}
+
+#else
+	// Now open a device connection
+	result = dr_test_open(*test);
+	if (result != AUD_SUCCESS)
+	{
+		goto cleanup;
+	}
+#endif
+
+	return result;
+
+cleanup:
+	close(test);
+
+	return result;
+}
+
+__declspec(dllexport) int step
+(
+	/*[in/out]*/ dr_test_t** test
+)
+{
+	return dapi_utils_step((*test)->runtime, AUD_SOCKET_INVALID, NULL);
+}
+
+__declspec(dllexport) int process_line
+(
+	/*[in/out]*/ dr_test_t** test,
+	/*[in]*/ char* input,
+	/*[out]*/ char*** array,
+	/*[out]*/ int* count
+)
+{
+	return dr_test_process_line(*test, input, array, count);
+}
