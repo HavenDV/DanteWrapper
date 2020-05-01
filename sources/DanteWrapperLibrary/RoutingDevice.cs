@@ -12,7 +12,7 @@ namespace DanteWrapperLibrary
         public string Name { get; }
 
         private IntPtr IntPtr { get; set; } = IntPtr.Zero;
-        private TaskWorker TaskWorker { get; set; } = new TaskWorker();
+        private TaskWorker TaskWorker { get; } = new TaskWorker();
 
         #endregion
 

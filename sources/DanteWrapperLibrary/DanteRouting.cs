@@ -30,6 +30,13 @@ namespace DanteWrapperLibrary
             ref IntPtr ptr
         );
 
+        internal delegate void EventCallbackDelegate(string value);
+
+        [DllImport("dante_routing_test.dll", EntryPoint = "set_event_callback", CallingConvention = CallingConvention.Cdecl)]
+        private static extern void SetEventCallback(
+            EventCallbackDelegate @delegate
+        );
+
         [DllImport("dante_routing_test.dll", EntryPoint = "process_line", CallingConvention = CallingConvention.Cdecl)]
         private static extern int ProcessLine(
             ref IntPtr ptr,
@@ -200,7 +207,23 @@ namespace DanteWrapperLibrary
 
         #endregion
 
+        #region Events
+
+        public static event EventHandler<string>? EventOccurred;
+
+        private static void OnEventOccurred(string value)
+        {
+            EventOccurred?.Invoke(null, value);
+        }
+
+        #endregion
+
         #region Methods
+
+        public static void InitializeEvents()
+        {
+            SetEventCallback(OnEventOccurred);
+        }
 
         public static void SetRxChannelName(string deviceName, int number, string name)
         {

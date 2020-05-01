@@ -273,6 +273,61 @@ dr_test_set_current_domain_by_name
 }
 #endif
 
+typedef void (CALLBACK* ON_EVENT_CALLBACK)(char* str);
+
+ON_EVENT_CALLBACK global_event_callback;
+
+void send_changes_to_callback(const ddh_changes_t* changes)
+{
+	char line[4096];
+	char buf[256];
+	ddh_change_flags_t change_flags = ddh_changes_get_change_flags(changes);
+	dante_domain_handler_t* handler = ddh_changes_get_domain_handler(changes);
+	
+	snprintf(line, 4096, "Domain Hander Event:\n");
+	snprintf(line + strlen(line), 4096, "  Flags: %s\n", ddh_change_flags_to_string(change_flags, buf, sizeof(buf)));
+	if (change_flags & DDH_CHANGE_FLAG_ERROR)
+	{
+		aud_error_t result = ddh_changes_get_error_code(changes);
+		snprintf(line + strlen(line), 4096, "  Error=%s\n", aud_error_get_name(result));
+	}
+	if (change_flags & DDH_CHANGE_FLAG_STATE)
+	{
+		ddh_state_t state = dante_domain_handler_get_state(handler);
+		snprintf(line + strlen(line), 4096, "  Domain Handler State: %s\n", ddh_state_to_string(state));
+	}
+	if (change_flags & DDH_CHANGE_FLAG_CURRENT_DOMAIN)
+	{
+		dante_domain_info_t current = dante_domain_handler_get_current_domain(handler);
+		snprintf(line + strlen(line), 4096, "  Current domain: %s\n", dapi_utils_domain_info_to_string(&current, buf, sizeof(buf)));
+	}
+
+#if DAPI_ENVIRONMENT == DAPI_ENVIRONMENT__STANDALONE
+	if (change_flags & DDH_CHANGE_FLAG_AVAILABLE_DOMAINS)
+	{
+		snprintf(line + strlen(line), 4096, "  Available domains:\n");
+		unsigned int d, nd = dante_domain_handler_num_available_domains(handler);
+		for (d = 0; d < nd; d++)
+		{
+			dante_domain_info_t available = dante_domain_handler_available_domain_at_index(handler, d);
+			snprintf(line + strlen(line), 4096, "    %s\n", dapi_utils_domain_info_to_string(&available, buf, sizeof(buf)));
+		}
+	}
+#elif DAPI_ENVIRONMENT == DAPI_ENVIRONMENT__EMBEDDED
+	if (((change_flags & DDH_CHANGE_FLAG_CURRENT_DOMAIN) == 0) && (change_flags & DDH_CHANGE_FLAG_REMOTE_CONTROL_POLICY))
+	{
+		snprintf(line + strlen(line), 4096, "  Remote policy: %s\n", dante_access_policy_to_string(dante_domain_handler_get_remote_control_policy(handler)));
+	}
+	if (change_flags & DDH_CHANGE_FLAG_LOCAL_CONTROL_POLICY)
+	{
+		snprintf(line + strlen(line), 4096, "  Local policy: %s\n", dante_access_policy_to_string(dante_domain_handler_get_local_control_policy(handler)));
+	}
+#endif
+	snprintf(line + strlen(line), 4096, "\n");
+
+	(*global_event_callback)(line);
+}
+
 void dr_test_event_handle_ddh_changes
 (
 	const ddh_changes_t * changes
@@ -3723,7 +3778,13 @@ __declspec(dllexport) int step
 	/*[in/out]*/ dr_test_t** test
 )
 {
+	//(*global_event_callback)("hello");
+
 	return dapi_utils_step((*test)->runtime, AUD_SOCKET_INVALID, NULL);
+}
+
+__declspec(dllexport) void set_event_callback(ON_EVENT_CALLBACK callback) {
+	global_event_callback = callback;
 }
 
 __declspec(dllexport) int process_line
