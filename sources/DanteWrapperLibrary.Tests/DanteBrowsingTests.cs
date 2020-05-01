@@ -17,6 +17,10 @@ namespace DanteWrapperLibrary.Tests
         public async Task RoutingDeviceTest()
         {
             using var device = new RoutingDevice("DESKTOP-VSC");
+            device.StepOccurred += (sender, args) =>
+            {
+                Console.WriteLine("StepOccurred");
+            };
             device.Initialize();
 
             await Task.Delay(TimeSpan.FromSeconds(3));

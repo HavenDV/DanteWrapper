@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
+using DanteWrapperLibrary.Utilities;
 
 namespace DanteWrapperLibrary
 {
@@ -12,12 +12,18 @@ namespace DanteWrapperLibrary
         public string Name { get; }
 
         private IntPtr IntPtr { get; set; } = IntPtr.Zero;
+        private TaskWorker TaskWorker { get; set; } = new TaskWorker();
 
         #endregion
 
         #region Events
 
+        public event EventHandler? StepOccurred;
 
+        private void OnStepOccurred()
+        {
+            StepOccurred?.Invoke(this, EventArgs.Empty);
+        }
 
         #endregion
 
@@ -41,13 +47,15 @@ namespace DanteWrapperLibrary
 
             IntPtr = DanteRouting.OpenDevice(Name);
 
-            Task.Factory.StartNew(() =>
+            TaskWorker.Start(cancellationToken =>
             {
-                while (IntPtr != IntPtr.Zero)
+                while (!cancellationToken.IsCancellationRequested && IntPtr != IntPtr.Zero)
                 {
                     DanteRouting.PerformNextDeviceStep(IntPtr);
+
+                    OnStepOccurred();
                 }
-            }, TaskCreationOptions.LongRunning);
+            });
         }
 
         public IList<RxChannelInfo> GetRxChannels()
@@ -114,6 +122,9 @@ namespace DanteWrapperLibrary
             {
                 return;
             }
+
+            // Waits to complete the last step
+            TaskWorker.Dispose();
 
             try
             {
