@@ -153,7 +153,7 @@ static void copy_string_to_output_array
 (
 	/*[in]*/ int i,
 	/*[in]*/ const char* value,
-	/*[out]*/ char*** array
+	/*[out]*/ void*** array
 )
 {
 	(*array)[i] = (char*)CoTaskMemAlloc(strlen(value) + 1);
