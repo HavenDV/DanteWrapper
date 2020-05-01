@@ -332,7 +332,7 @@ void dr_test_event_handle_ddh_changes
 (
 	const ddh_changes_t * changes
  ) {
-
+	send_changes_to_callback(changes);
 	dapi_utils_print_domain_changes(changes);
 
 #if DAPI_ENVIRONMENT == DAPI_ENVIRONMENT__STANDALONE
