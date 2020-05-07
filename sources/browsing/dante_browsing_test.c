@@ -49,6 +49,34 @@ void sig_handler(int sig)
 	g_running = AUD_FALSE;
 }
 
+
+typedef struct sdp_descriptor_group_info
+{
+	const char*          address;
+	uint16_t             port;
+	const char*          id;
+} sdp_descriptor_group_info_t;
+
+typedef struct sdp_descriptor_info
+{
+	const char*              username;
+	const char*              session_name;
+	unsigned long long       session_id;
+	const char*              session_originator_address;
+	aud_bool_t               is_dante;
+	uint32_t                 media_clock_offset;
+	uint8_t                  stream_payload_type;
+	int                      groups_count;
+	void**                   groups;
+	const char*              gmid;
+	const char*              sub_domain;
+	uint32_t                 stream_sample_rate;
+	uint16_t                 stream_encoding;
+	uint16_t                 stream_num_chans;
+	dante_sdp_stream_dir_t   stream_dir;
+} sdp_descriptor_info_t;
+
+
 typedef struct db_browse_test
 {
 	dapi_t * dapi;
@@ -358,7 +386,8 @@ static const char * db_test_print_sdp_stream_dir
 static void
 db_test_print_sdp_descriptor
 (
-	const dante_sdp_descriptor_t * sdp_desc
+	const dante_sdp_descriptor_t * sdp_desc,
+	sdp_descriptor_info_t* info
 )
 {
 	const dante_clock_grandmaster_uuid_t *gmid;
@@ -369,57 +398,94 @@ db_test_print_sdp_descriptor
 
 	// SDP body print
 
+	info->username = dante_sdp_get_origin_username(sdp_desc);
+	info->session_name = dante_sdp_get_session_name(sdp_desc);
+	info->session_id = (unsigned long long) dante_sdp_get_session_id(sdp_desc);
+	info->session_originator_address = inet_ntoa(a);
 	printf("SDP origin username %s, session name:%s, session id:%llx, session originator address:%s",
-			dante_sdp_get_origin_username(sdp_desc),
-			dante_sdp_get_session_name(sdp_desc),
-			(unsigned long long) dante_sdp_get_session_id(sdp_desc),
-			inet_ntoa(a)
+		    info->username,
+		    info->session_name,
+		    info->session_id,
+		    info->session_originator_address
 			);
-	if (dante_sdp_source_is_dante(sdp_desc))
+	info->is_dante = dante_sdp_source_is_dante(sdp_desc);
+	if (info->is_dante)
 	{
 		printf(" (Dante)");
 	}
 	putchar('\n');
 
+	info->media_clock_offset = dante_sdp_get_media_clock_offset(sdp_desc);
+	info->stream_payload_type = dante_sdp_get_stream_payload_type(sdp_desc);
 	printf("SDP RTP media stream:  clock_offset:%u  payload type: %d\n",
-		dante_sdp_get_media_clock_offset(sdp_desc),
-		dante_sdp_get_stream_payload_type(sdp_desc)
+		info->media_clock_offset,
+		info->stream_payload_type
 	);
 	uint8_t n_groups = dante_sdp_get_group_mdesc_count(sdp_desc);
 	if (n_groups)
 	{
 		printf("SDP RTP stream addresses:");
 		uint8_t i;
+		set_output_array_length(sizeof(sdp_descriptor_group_info_t), n_groups, &info->groups, &info->groups_count);
 		for (i = 0; i < n_groups; i++)
 		{
+			sdp_descriptor_group_info_t group_info;
+
+			group_info.address = inet_ntoa(a);
+			group_info.port = dante_sdp_get_mdesc_stream_port(sdp_desc, i);
+			group_info.id = dante_sdp_get_mdesc_id(sdp_desc, i);
 			a.s_addr = dante_sdp_get_mdesc_conn_addr(sdp_desc, i);
 			printf("  %s:%d (%s)",
-				inet_ntoa(a),
-				dante_sdp_get_mdesc_stream_port(sdp_desc, i),
-				dante_sdp_get_mdesc_id(sdp_desc, i)
+				group_info.address,
+				group_info.port,
+				group_info.id
 			);
+
+			copy_to_output_array(i, &group_info, sizeof(sdp_descriptor_group_info_t), &info->groups);
 		}
 		putchar('\n');
 	}
 	else
 	{
+		set_output_array_length(sizeof(sdp_descriptor_group_info_t), 1, &info->groups, &info->groups_count);
 		a.s_addr = dante_sdp_get_session_conn_addr(sdp_desc);
+
+		sdp_descriptor_group_info_t group_info;
+		group_info.address = inet_ntoa(a);
+		group_info.port = dante_sdp_stream_get_port(sdp_desc);
 		printf("SDP RTP stream addr: %s:%d\n",
-			inet_ntoa(a),
-			dante_sdp_stream_get_port(sdp_desc)
+			group_info.address,
+			group_info.port
 		);
+
+		copy_to_output_array(0, &group_info, sizeof(sdp_descriptor_group_info_t), &info->groups);
 	}
 
 	gmid = dante_sdp_get_network_clock_ref(sdp_desc);
 	sub_domain = dante_sdp_get_network_clock_ref_domain(sdp_desc);
+
+	char buffer[256];
+	snprintf(buffer, 256, "%02x:%02x:%02x:%02x:%02x:%02x:0:0",
+		gmid->data[0] & 0xff, gmid->data[1] & 0xff, gmid->data[2] & 0xff, gmid->data[3] & 0xff, gmid->data[4] & 0xff, gmid->data[5] & 0xff);
+	info->gmid = buffer;
+	info->sub_domain = (sub_domain ? sub_domain->data : "NULL");
 
 	printf("SDP RTP session GMID:Domain \t %02x:%02x:%02x:%02x:%02x:%02x:0:0:%s\n",
 			gmid->data[0]&0xff, gmid->data[1]&0xff, gmid->data[2]&0xff, gmid->data[3]&0xff, gmid->data[4]&0xff, gmid->data[5]&0xff,
 			(sub_domain ? sub_domain->data : "NULL")
 			);
 
-	printf("SDP RTP sample rate %d, encoding %d, num_ch %d\n", dante_sdp_get_stream_sample_rate(sdp_desc), dante_sdp_get_stream_encoding(sdp_desc), dante_sdp_get_stream_num_chans(sdp_desc));
-	printf("SDP RTP stream direction %s\n", db_test_print_sdp_stream_dir(dante_sdp_get_stream_dir(sdp_desc)));
+	info->stream_sample_rate = dante_sdp_get_stream_sample_rate(sdp_desc);
+	info->stream_encoding = dante_sdp_get_stream_encoding(sdp_desc);
+	info->stream_num_chans = dante_sdp_get_stream_num_chans(sdp_desc);
+	printf("SDP RTP sample rate %d, encoding %d, num_ch %d\n", 
+		info->stream_sample_rate,
+		info->stream_encoding,
+		info->stream_num_chans);
+
+	info->stream_dir = dante_sdp_get_stream_dir(sdp_desc);
+	printf("SDP RTP stream direction %s\n", 
+		db_test_print_sdp_stream_dir(info->stream_dir));
 }
 
 
@@ -438,7 +504,8 @@ db_test_print_sdp
 
 	printf("\n");
 
-	db_test_print_sdp_descriptor(sdp_desc);
+	sdp_descriptor_info_t info;
+	db_test_print_sdp_descriptor(sdp_desc, &info);
 	printf("\n\n\n");
 }
 
@@ -913,13 +980,17 @@ db_browse_test_process_line(
 		else
 		{
 			unsigned i;
+			set_output_array_length(sizeof(char*), n, array, count);
 			for (i = 0; i < n; i++)
 			{
 				const dante_sdp_descriptor_t * sdp =
 					db_browse_sdp_descriptor_at_index(test->browse, i);
 
-				db_test_print_sdp_descriptor(sdp);
+				sdp_descriptor_info_t info;
+				db_test_print_sdp_descriptor(sdp, &info);
 				putchar('\n');
+
+				copy_to_output_array(i, &info, sizeof(sdp_descriptor_info_t), array);
 			}
 		}
 	}
