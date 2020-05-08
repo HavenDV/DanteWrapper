@@ -45,13 +45,13 @@ namespace DanteWrapperLibrary
                 return;
             }
 
-            IntPtr = DanteRouting.OpenDevice(Name);
+            IntPtr = DanteRoutingApi.OpenDevice(Name);
 
             TaskWorker.Start(cancellationToken =>
             {
                 while (!cancellationToken.IsCancellationRequested && IntPtr != IntPtr.Zero)
                 {
-                    DanteRouting.PerformNextDeviceStep(IntPtr);
+                    DanteRoutingApi.PerformNextDeviceStep(IntPtr);
 
                     OnStepOccurred();
                 }
@@ -60,7 +60,7 @@ namespace DanteWrapperLibrary
 
         public IList<RxChannelInfo> GetRxChannels()
         {
-            return DanteRouting.ProcessLineAndGetStructureArray<InternalRxChannelInfo>(IntPtr, "r")
+            return DanteRoutingApi.ProcessLineAndGetStructureArray<InternalRxChannelInfo>(IntPtr, "r")
                 .Select(info => new RxChannelInfo(
                     info.id,
                     Convert.ToBoolean(info.stale),
@@ -77,12 +77,12 @@ namespace DanteWrapperLibrary
 
         public void SetRxChannelName(int number, string name)
         {
-            DanteRouting.ProcessLine(IntPtr, $"r {number} \"{name}\"");
+            DanteRoutingApi.ProcessLine(IntPtr, $"r {number} \"{name}\"");
         }
 
         public IList<TxChannelInfo> GetTxChannels()
         {
-            return DanteRouting.ProcessLineAndGetStructureArray<InternalTxChannelInfo>(IntPtr, "t")
+            return DanteRoutingApi.ProcessLineAndGetStructureArray<InternalTxChannelInfo>(IntPtr, "t")
                 .Select(info => new TxChannelInfo(
                     info.id,
                     Convert.ToBoolean(info.stale),
@@ -96,12 +96,12 @@ namespace DanteWrapperLibrary
 
         public void SetSxChannelName(int number, string name)
         {
-            DanteRouting.ProcessLine(IntPtr, $"s {number} \"{name}\"");
+            DanteRoutingApi.ProcessLine(IntPtr, $"s {number} \"{name}\"");
         }
 
         public IList<TxLabelInfo> GetTxLabels()
         {
-            return DanteRouting.ProcessLineAndGetStructureArray<InternalTxLabelInfo>(IntPtr, "l")
+            return DanteRoutingApi.ProcessLineAndGetStructureArray<InternalTxLabelInfo>(IntPtr, "l")
                 .Select(info =>
                 {
                     MarshalUtilities.ToManagedStringArray(info.labels, info.label_count, out var labels);
@@ -113,7 +113,7 @@ namespace DanteWrapperLibrary
 
         public void AddTxLabel(int number, string name)
         {
-            DanteRouting.ProcessLine(IntPtr, $"l {number} \"{name}\" +");
+            DanteRoutingApi.ProcessLine(IntPtr, $"l {number} \"{name}\" +");
         }
 
         public void Dispose()
@@ -128,7 +128,7 @@ namespace DanteWrapperLibrary
 
             try
             {
-                DanteRouting.CloseDevice(IntPtr);
+                DanteRoutingApi.CloseDevice(IntPtr);
             }
             finally
             {

@@ -17,11 +17,11 @@ namespace DanteWrapperLibrary.Tests
         [TestMethod]
         public async Task RoutingDeviceTest()
         {
-            DanteRouting.EventOccurred += (_, text) =>
+            DanteRoutingApi.EventOccurred += (_, text) =>
             {
                 Console.WriteLine($"EventOccurred: {text}");
             };
-            DanteRouting.InitializeEvents();
+            DanteRoutingApi.InitializeEvents();
 
             using var device = new RoutingDevice("DESKTOP-VSC");
             device.StepOccurred += (sender, args) =>
@@ -77,18 +77,18 @@ namespace DanteWrapperLibrary.Tests
         }
 
         [TestMethod]
-        public void GetDeviceNamesTest()
+        public async Task GetDeviceNamesTest()
         {
-            foreach (var name in DanteBrowsing.GetDeviceNames())
+            foreach (var name in await DanteBrowsing.GetDeviceNamesAsync())
             {
                 ShowProperties(name);
             }
         }
 
         [TestMethod]
-        public void GetSdpDescriptorsTest()
+        public async Task GetSdpDescriptorsTest()
         {
-            foreach (var info in DanteBrowsing.GetSdpDescriptors())
+            foreach (var info in await DanteBrowsing.GetSdpDescriptorsAsync())
             {
                 ShowProperties(info);
                 Console.WriteLine();
@@ -98,7 +98,7 @@ namespace DanteWrapperLibrary.Tests
         [TestMethod]
         public void GetRxChannelsTest()
         {
-            foreach (var info in DanteRouting.GetRxChannels("DESKTOP-VSC"))
+            foreach (var info in DanteRoutingApi.GetRxChannels("DESKTOP-VSC"))
             {
                 Console.WriteLine($"Id: {info.Id}");
                 Console.WriteLine($"IsStale: {info.IsStale}");
@@ -117,7 +117,7 @@ namespace DanteWrapperLibrary.Tests
         [TestMethod]
         public void GetTxChannelsTest()
         {
-            foreach (var info in DanteRouting.GetTxChannels("DESKTOP-VSC"))
+            foreach (var info in DanteRoutingApi.GetTxChannels("DESKTOP-VSC"))
             {
                 Console.WriteLine($"Id: {info.Id}");
                 Console.WriteLine($"IsStale: {info.IsStale}");
@@ -133,7 +133,7 @@ namespace DanteWrapperLibrary.Tests
         [TestMethod]
         public void GetTxLabelsTest()
         {
-            foreach (var info in DanteRouting.GetTxLabels("DESKTOP-VSC"))
+            foreach (var info in DanteRoutingApi.GetTxLabels("DESKTOP-VSC"))
             {
                 Console.WriteLine($"Id: {info.Id}");
                 Console.WriteLine($"Name: {info.Name}");
@@ -150,19 +150,19 @@ namespace DanteWrapperLibrary.Tests
         [TestMethod]
         public void AddTxLabelTest()
         {
-            DanteRouting.AddTxLabel("DESKTOP-VSC", 3, "TEST-LABEL");
+            DanteRoutingApi.AddTxLabel("DESKTOP-VSC", 3, "TEST-LABEL");
         }
 
         [TestMethod]
         public void SetRxChannelNameTest()
         {
-            DanteRouting.SetRxChannelName("DESKTOP-VSC", 3, "TEST-CHANNEL-NAME");
+            DanteRoutingApi.SetRxChannelName("DESKTOP-VSC", 3, "TEST-CHANNEL-NAME");
         }
 
         [TestMethod]
         public void SetSxChannelNameTest()
         {
-            DanteRouting.SetSxChannelName("DESKTOP-VSC", 3, "TEST-CHANNEL-NAME");
+            DanteRoutingApi.SetSxChannelName("DESKTOP-VSC", 3, "TEST-CHANNEL-NAME");
         }
 
         #region Utilities

@@ -1,88 +1,86 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
+using DanteWrapperLibrary.Utilities;
 
 namespace DanteWrapperLibrary
 {
-    public class DanteBrowsing
+    public class DanteBrowsing : IDisposable
     {
-        #region Imports
+        #region Static methods
 
-        [DllImport("dante_browsing_test.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int RunDll(
-            int argc,
-            string[] argv,
-            string input,
-            out IntPtr array,
-            out int count
-        );
-
-        /// <summary>
-        /// Entry point to library
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="count"></param>
-        /// <param name="input"></param>
-        /// <exception cref="InvalidOperationException"></exception>
-        /// <returns></returns>
-        private static void Run(out IntPtr array, out int count, string input)
+        public static async Task<T> RunAsync<T>(Func<DanteBrowsing, T> func, TimeSpan? delay = null, CancellationToken cancellationToken = default)
         {
-            var result = RunDll(2, new[] { "DanteBrowsingWrapper", "-conmon" }, input, out array, out count);
-            if (result != 0)
-            {
-                throw new InvalidOperationException($"Bad result: {result}");
-            }
+            using var browsing = new DanteBrowsing();
+            browsing.Initialize();
+
+            await Task.Delay(delay ?? TimeSpan.Zero, cancellationToken).ConfigureAwait(false);
+
+            return func(browsing);
         }
 
-        /// <summary>
-        /// Entry point to library(when the output is an array of strings)
-        /// </summary>
-        /// <param name="input"></param>
-        /// <exception cref="InvalidOperationException"></exception>
-        /// <returns></returns>
-        private static IList<string> RunAndGetStringArray(string input)
+        public static async Task<IList<string>> GetDeviceNamesAsync(TimeSpan? delay = null, CancellationToken cancellationToken = default)
         {
-            Run(out var ptr, out var count, input);
-            MarshalUtilities.ToManagedStringArray
-            (
-                ptr,
-                count,
-                out var array
-            );
-
-            return array;
+            return await RunAsync(browsing => browsing.GetDeviceNames(), delay, cancellationToken).ConfigureAwait(false);
         }
 
-        /// <summary>
-        /// Entry point to library(when the output is an array of structures)
-        /// </summary>
-        /// <param name="input"></param>
-        /// <exception cref="InvalidOperationException"></exception>
-        /// <returns></returns>
-        private static IList<T> RunAndGetStructureArray<T>(string input)
+        public static async Task<IList<SdpDescriptorInfo>> GetSdpDescriptorsAsync(TimeSpan? delay = null, CancellationToken cancellationToken = default)
         {
-            Run(out var ptr, out var count, input);
-            MarshalUtilities.ToManagedStructureArray<T>
-            (
-                ptr,
-                count,
-                out var array
-            );
-
-            return array;
+            return await RunAsync(browsing => browsing.GetSdpDescriptors(), delay, cancellationToken).ConfigureAwait(false);
         }
 
         #endregion
 
-        public static IList<string> GetDeviceNames()
+        #region Properties
+
+        private IntPtr IntPtr { get; set; } = IntPtr.Zero;
+        private TaskWorker TaskWorker { get; } = new TaskWorker();
+
+        #endregion
+
+        #region Events
+
+        public event EventHandler? StepOccurred;
+
+        private void OnStepOccurred()
         {
-            return RunAndGetStringArray("r d");
+            StepOccurred?.Invoke(this, EventArgs.Empty);
         }
 
-        public static IList<SdpDescriptorInfo> GetSdpDescriptors()
+        #endregion
+
+        #region Methods
+
+        public void Initialize()
         {
-            return RunAndGetStructureArray<InternalSdpDescriptorInfo>("p")
+            if (IntPtr != IntPtr.Zero)
+            {
+                return;
+            }
+
+            IntPtr = DanteBrowsingApi.Open();
+
+            TaskWorker.Start(cancellationToken =>
+            {
+                while (!cancellationToken.IsCancellationRequested && IntPtr != IntPtr.Zero)
+                {
+                    DanteBrowsingApi.PerformNextDeviceStep(IntPtr);
+
+                    OnStepOccurred();
+                }
+            });
+        }
+
+        public IList<string> GetDeviceNames()
+        {
+            return DanteBrowsingApi.ProcessLineAndGetStringArray(IntPtr, "r d");
+        }
+
+        public IList<SdpDescriptorInfo> GetSdpDescriptors()
+        {
+            return DanteBrowsingApi.ProcessLineAndGetStructureArray<InternalSdpDescriptorInfo>(IntPtr, "p")
                 .Select(info =>
                 {
                     MarshalUtilities.ToManagedStructureArray<InternalSdpDescriptorGroupInfo>(
@@ -108,5 +106,27 @@ namespace DanteWrapperLibrary
                 })
                 .ToArray();
         }
+
+        public void Dispose()
+        {
+            if (IntPtr == IntPtr.Zero)
+            {
+                return;
+            }
+
+            // Waits to complete the last step
+            TaskWorker.Dispose();
+
+            try
+            {
+                DanteBrowsingApi.Close(IntPtr);
+            }
+            finally
+            {
+                IntPtr = IntPtr.Zero;
+            }
+        }
+
+        #endregion
     }
 }

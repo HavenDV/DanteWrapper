@@ -7,7 +7,7 @@ namespace DanteWrapperApp
     {
         private static void Main()
         {
-            foreach (var info in DanteRouting.GetRxChannels("DESKTOP-VSC"))
+            foreach (var info in DanteRoutingApi.GetRxChannels("DESKTOP-VSC"))
             {
                 Console.WriteLine($"Id: {info.Id}");
                 Console.WriteLine($"IsStale: {info.IsStale}");

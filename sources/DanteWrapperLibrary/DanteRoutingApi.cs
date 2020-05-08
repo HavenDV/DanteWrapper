@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace DanteWrapperLibrary
 {
-    public class DanteRouting
+    public class DanteRoutingApi
     {
         #region Imports
 

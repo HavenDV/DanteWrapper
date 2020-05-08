@@ -1612,3 +1612,186 @@ cleanup:
 	}
 	return result;
 }
+
+__declspec(dllexport) void close
+(
+	/*[in/out]*/ db_browse_test_t** test
+)
+{
+	if ((*test)->browse)
+	{
+		db_browse_delete((*test)->browse);
+	}
+	if ((*test)->dapi)
+	{
+		dapi_delete((*test)->dapi);
+	}
+}
+
+__declspec(dllexport) int open
+(
+	/*[in]*/ int argc,
+	/*[in]*/ char* argv[],
+	/*[out]*/ db_browse_test_t** test
+)
+{
+
+	signal(SIGINT, sig_handler);
+
+	aud_error_t result = AUD_SUCCESS;
+
+	*test = (db_browse_test_t*)CoTaskMemAlloc(sizeof(db_browse_test_t));
+	memset(*test, 0, sizeof(db_browse_test_t));
+
+	db_browse_config_init_defaults(&(*test)->browse_config);
+
+	db_test_parse_options(*test, argc, argv);
+
+#ifdef WIN32
+	dapi_utils_check_quick_edit_mode(AUD_FALSE);
+#endif
+
+	if ((*test)->types == 0)
+	{
+		(*test)->types = DB_BROWSE_TYPES_ALL_DEVICES | DB_BROWSE_TYPE_AES67_FLOW;
+	}
+
+#if DAPI_ENVIRONMENT == DAPI_ENVIRONMENT__EMBEDDED
+	dapi_config_t* dapiConfig = dapi_config_new();
+	if (dapiConfig)
+	{
+		dante_domain_handler_config_t* domainHandlerConfig = dapi_config_get_domain_handler_config(dapiConfig);
+
+		if (domainHandlerConfig)
+		{
+#ifdef WIN32
+			dante_domain_handler_config_set_port(domainHandlerConfig, test.domain_handler.port_no);
+#else
+			dante_domain_handler_config_set_unix_path(domainHandlerConfig, test.domain_handler.socket_path);
+#endif
+}
+	}
+
+#if DAPI_HAS_CONFIGURABLE_MDNS_SERVER_PORT == 1
+	if (test.mdns_server_port > 0)
+	{
+		dapi_config_set_mdns_server_port(dapiConfig, test.mdns_server_port);
+	}
+#endif
+
+	result = dapi_new_config(dapiConfig, &test.dapi);
+
+	dapi_config_delete(dapiConfig);
+#else
+	result = dapi_new(&(*test)->dapi);
+#endif
+	if (result != AUD_SUCCESS)
+	{
+		DB_TEST_ERROR("Error initialising environment: %s\n", aud_error_message(result, (*test)->errbuf));
+		goto cleanup;
+	}
+	(*test)->env = dapi_get_env((*test)->dapi);
+	(*test)->runtime = dapi_get_runtime((*test)->dapi);
+	(*test)->handler = dapi_get_domain_handler((*test)->dapi);
+	assert((*test)->env);
+	assert((*test)->dapi);
+	assert((*test)->runtime);
+	assert((*test)->handler);
+	DB_TEST_DEBUG("Created environment\n");
+
+	dante_domain_handler_set_context((*test)->handler, &test);
+
+#if DAPI_ENVIRONMENT == DAPI_ENVIRONMENT__STANDALONE
+	result = dapi_utils_ddm_connect_blocking(&(*test)->ddm_config, (*test)->handler, (*test)->runtime, &g_running);
+	if (result != AUD_SUCCESS)
+	{
+		DB_TEST_ERROR("Error initiating ddm connection: %s\n", aud_error_message(result, (*test)->errbuf));
+		goto cleanup;
+	}
+	else
+	{
+		strcpy((*test)->lastDomain, (*test)->ddm_config.domain);
+	}
+#endif
+
+	// Print current domain info before doing anything else
+	printf("Current domain configuration:\n");
+	dapi_utils_print_domain_handler_info((*test)->handler);
+	dante_domain_handler_set_event_fn((*test)->handler, db_test_event_handle_ddh_changes);
+
+	// an interface index number must be provided for browsing AES67 SAP/SDP packet
+	if (((*test)->types & DB_BROWSE_TYPE_AES67_FLOW) == DB_BROWSE_TYPE_AES67_FLOW)
+	{
+		if (!(*test)->browse_config.interface_indexes[0])
+		{
+			DB_TEST_PRINT("\nBrowsing for AES67 SAP/SDP : Interface index number must be provided. i.e) -ii=[index number] \n\n");
+			usage();
+			exit(0);
+		}
+	}
+
+	result = db_browse_new((*test)->env, (*test)->types, &(*test)->browse);
+	if (result != AUD_SUCCESS)
+	{
+		DB_TEST_ERROR("Error creating browse: %s\n", aud_error_message(result, (*test)->errbuf));
+		goto cleanup;
+	}
+
+	result = db_browse_set_max_sockets((*test)->browse, MAX_SOCKETS);
+	if (result != AUD_SUCCESS)
+	{
+		DB_TEST_ERROR("Error setting max browse sockets: %s\n", aud_error_message(result, (*test)->errbuf));
+		goto cleanup;
+	}
+
+	db_browse_set_node_changed_callback((*test)->browse, db_test_node_changed);
+	db_browse_set_network_changed_callback((*test)->browse, db_test_network_changed);
+	db_browse_set_context((*test)->browse, &test);
+
+	if ((*test)->browse_filter && (*test)->browse_filter[0])
+	{
+		dante_id64_t filter_id;
+		if (dante_id64_from_dnssd_text(&filter_id, (*test)->browse_filter))
+		{
+			db_browse_set_id64_filter((*test)->browse, &filter_id);
+		}
+	}
+
+#ifdef DANTE_BROWSING_TEST_CUSTOM_CONFIG_OPTIONS
+	DANTE_BROWSING_TEST_CUSTOM_CONFIG_OPTIONS(&test);
+#endif
+
+	result = db_browse_start_config((*test)->browse, &(*test)->browse_config);
+	if (result != AUD_SUCCESS)
+	{
+		DB_TEST_ERROR("Error starting browse: %s\n", aud_error_message(result, (*test)->errbuf));
+		goto cleanup;
+	}
+	(*test)->running = AUD_TRUE;
+
+	return result;
+
+cleanup:
+	close(test);
+
+	return result;
+}
+
+__declspec(dllexport) int step
+(
+	/*[in/out]*/ db_browse_test_t** test
+)
+{
+	return dapi_utils_step((*test)->runtime, AUD_SOCKET_INVALID, NULL);
+}
+
+__declspec(dllexport) int process_line
+(
+	/*[in/out]*/ db_browse_test_t** test,
+	/*[in]*/ char* input,
+	/*[out]*/ char*** array,
+	/*[out]*/ int* count
+)
+{
+	return db_browse_test_process_line(*test, input, array, count);
+}
