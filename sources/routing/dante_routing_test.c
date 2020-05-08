@@ -144,6 +144,14 @@ static ddh_change_event_fn dr_test_event_handle_ddh_changes;
 static aud_error_t
 dr_test_open(dr_test_t * test);
 
+// Wrapper callbacks
+typedef void (CALLBACK* ON_DOMAIN_EVENT_CALLBACK)(void* test, const char* text);
+typedef void (CALLBACK* ON_DEVICE_EVENT_CALLBACK)(void* test, const char* name, const char* text);
+
+ON_DOMAIN_EVENT_CALLBACK domain_event_callback;
+ON_DEVICE_EVENT_CALLBACK device_event_callback;
+
+
 //----------------------------------------------------------
 // Request management
 //----------------------------------------------------------
@@ -183,6 +191,9 @@ dr_test_on_response
 	dante_request_id_t request_id,
 	aud_error_t result
 ) {
+	char line[4096];
+	memset(line, 0, 1);
+
 	unsigned int i;
 	dr_test_t * test = (dr_test_t *)  dr_device_get_context(device);
 
@@ -192,11 +203,15 @@ dr_test_on_response
 		{
 			DR_TEST_PRINT("\nEVENT: completed request %p (%s) with result %s\n", 
 				request_id, test->requests[i].description, dr_error_message(result, g_test_errbuf));
+			snprintf(line + strlen(line), 4096, "\nEVENT: completed request %p (%s) with result %s\n",
+				request_id, test->requests[i].description, dr_error_message(result, g_test_errbuf));
 			dr_test_request_release(test->requests+i);
 			return;
 		}
 	}
 	DR_TEST_ERROR("\nEVENT: completed unknown request %p\n", request_id);
+
+	(*device_event_callback)(test, dr_device_get_name(device), line);
 }
 
 
@@ -272,12 +287,6 @@ dr_test_set_current_domain_by_name
 	return AUD_SUCCESS;
 }
 #endif
-
-typedef void (CALLBACK* ON_DOMAIN_EVENT_CALLBACK)(void* test, const char* text);
-typedef void (CALLBACK* ON_DEVICE_EVENT_CALLBACK)(void* test, const char* name, const char* text);
-
-ON_DOMAIN_EVENT_CALLBACK domain_event_callback;
-ON_DEVICE_EVENT_CALLBACK device_event_callback;
 
 void send_changes_to_callback(const ddh_changes_t* changes)
 {
