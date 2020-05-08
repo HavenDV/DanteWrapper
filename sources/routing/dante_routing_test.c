@@ -273,9 +273,11 @@ dr_test_set_current_domain_by_name
 }
 #endif
 
-typedef void (CALLBACK* ON_EVENT_CALLBACK)(char* str);
+typedef void (CALLBACK* ON_DOMAIN_EVENT_CALLBACK)(const char* text);
+typedef void (CALLBACK* ON_DEVICE_EVENT_CALLBACK)(const char* name, const char* text);
 
-ON_EVENT_CALLBACK global_event_callback;
+ON_DOMAIN_EVENT_CALLBACK domain_event_callback;
+ON_DEVICE_EVENT_CALLBACK device_event_callback;
 
 void send_changes_to_callback(const ddh_changes_t* changes)
 {
@@ -325,7 +327,7 @@ void send_changes_to_callback(const ddh_changes_t* changes)
 #endif
 	snprintf(line + strlen(line), 4096, "\n");
 
-	(*global_event_callback)(line);
+	(*domain_event_callback)(line);
 }
 
 void dr_test_event_handle_ddh_changes
@@ -2277,27 +2279,34 @@ dr_test_on_device_changed
 	dr_device_change_index_t i;
 
 	(void) device;
-	
+
+	char line[4096];
+
 	DR_TEST_DEBUG("\nEVENT: device changed:");
+	snprintf(line, 4096, "\nEVENT: device changed:");
 	for (i = 0; i < DR_DEVICE_CHANGE_INDEX_COUNT; i++)
 	{
 		if (change_flags & (1 << i))
 		{
 			DR_TEST_DEBUG(" %s", dr_device_change_index_to_string(i));
+			snprintf(line + strlen(line), 4096, " %s", dr_device_change_index_to_string(i));
 			if (i == DR_DEVICE_CHANGE_INDEX_STATE)
 			{
 				dr_device_state_t state = dr_device_get_state(device);
 				DR_TEST_DEBUG(" (%s)", dr_device_state_to_string(state));
+				snprintf(line + strlen(line), 4096, " (%s)", dr_device_state_to_string(state));
 			}
 			else if (i == DR_DEVICE_CHANGE_INDEX_STALE)
 			{
 				unsigned int c;
 				DR_TEST_DEBUG("=");
+				snprintf(line + strlen(line), 4096, " =");
 				for (c = 0; c < DR_DEVICE_COMPONENT_COUNT; c++)
 				{
 					if (dr_device_is_component_stale(test->device, c))
 					{
 						DR_TEST_DEBUG(" %s", dr_device_component_to_string(c));
+						snprintf(line + strlen(line), 4096, " %s", dr_device_component_to_string(c));
 					}
 				}
 			}
@@ -2318,7 +2327,11 @@ dr_test_on_device_changed
 	printf("Active Requests: %d/%d\n", 
 		dr_devices_num_requests_pending(test->devices),
 		dr_devices_get_request_limit(test->devices));
+	snprintf(line + strlen(line), 4096, "Active Requests: %d/%d\n",
+		dr_devices_num_requests_pending(test->devices),
+		dr_devices_get_request_limit(test->devices));
 
+	(*device_event_callback)(dr_device_get_name(device), line);
 }
 
 //----------------------------------------------------------
@@ -3778,13 +3791,18 @@ __declspec(dllexport) int step
 	/*[in/out]*/ dr_test_t** test
 )
 {
-	//(*global_event_callback)("hello");
+	//(*domain_event_callback)("domain event");
+	//(*device_event_callback)("DESKTOP-VSC", "device event");
 
 	return dapi_utils_step((*test)->runtime, AUD_SOCKET_INVALID, NULL);
 }
 
-__declspec(dllexport) void set_event_callback(ON_EVENT_CALLBACK callback) {
-	global_event_callback = callback;
+__declspec(dllexport) void set_domain_event_callback(ON_DOMAIN_EVENT_CALLBACK callback) {
+	domain_event_callback = callback;
+}
+
+__declspec(dllexport) void set_device_event_callback(ON_DEVICE_EVENT_CALLBACK callback) {
+	device_event_callback = callback;
 }
 
 __declspec(dllexport) int process_line

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -14,30 +15,15 @@ namespace DanteWrapperLibrary.Tests
         }
 
         [TestMethod]
-        public void InitializedRoutingDeviceTest()
+        public async Task InitializedRoutingDeviceTest()
         {
-            using var device = new RoutingDevice("DESKTOP-VSC");
-
-            device.Initialize();
+            using var device = await GetInitializedDeviceAsync("DESKTOP-VSC");
         }
 
         [TestMethod]
         public async Task RoutingDeviceTest()
         {
-            DanteRoutingApi.DomainEventOccurred += (_, text) =>
-            {
-                Console.WriteLine($"DomainEventOccurred: {text}");
-            };
-            DanteRoutingApi.InitializeDomainEvents();
-
-            using var device = new RoutingDevice("DESKTOP-VSC");
-            device.StepOccurred += (sender, args) =>
-            {
-                Console.WriteLine("StepOccurred");
-            };
-            device.Initialize();
-
-            await Task.Delay(TimeSpan.FromSeconds(3));
+            using var device = await GetInitializedDeviceAsync("DESKTOP-VSC", TimeSpan.FromSeconds(3));
 
             Console.WriteLine("GetRxChannels:");
             foreach (var info in device.GetRxChannels())
@@ -62,9 +48,18 @@ namespace DanteWrapperLibrary.Tests
         }
 
         [TestMethod]
-        public void GetRxChannelsTest()
+        public async Task MultiDeviceTest()
         {
-            foreach (var info in DanteRoutingApi.GetRxChannels("DESKTOP-VSC"))
+            using var device1 = await GetInitializedDeviceAsync("DESKTOP-VSC", TimeSpan.FromSeconds(3));
+            using var device2 = await GetInitializedDeviceAsync("test device", TimeSpan.FromSeconds(3));
+        }
+
+        [TestMethod]
+        public async Task GetRxChannelsTest()
+        {
+            using var device = await GetInitializedDeviceAsync("DESKTOP-VSC", TimeSpan.FromSeconds(3));
+
+            foreach (var info in device.GetRxChannels())
             {
                 PrintUtilities.ShowProperties(info);
                 Console.WriteLine();
@@ -72,9 +67,11 @@ namespace DanteWrapperLibrary.Tests
         }
 
         [TestMethod]
-        public void GetTxChannelsTest()
+        public async Task GetTxChannelsTest()
         {
-            foreach (var info in DanteRoutingApi.GetTxChannels("DESKTOP-VSC"))
+            using var device = await GetInitializedDeviceAsync("DESKTOP-VSC", TimeSpan.FromSeconds(3));
+
+            foreach (var info in device.GetTxChannels())
             {
                 PrintUtilities.ShowProperties(info);
                 Console.WriteLine();
@@ -82,9 +79,11 @@ namespace DanteWrapperLibrary.Tests
         }
 
         [TestMethod]
-        public void GetTxLabelsTest()
+        public async Task GetTxLabelsTest()
         {
-            foreach (var info in DanteRoutingApi.GetTxLabels("DESKTOP-VSC"))
+            using var device = await GetInitializedDeviceAsync("DESKTOP-VSC", TimeSpan.FromSeconds(3));
+
+            foreach (var info in device.GetTxLabels())
             {
                 PrintUtilities.ShowProperties(info);
                 Console.WriteLine();
@@ -92,21 +91,53 @@ namespace DanteWrapperLibrary.Tests
         }
 
         [TestMethod]
-        public void AddTxLabelTest()
+        public async Task AddTxLabelTest()
         {
-            DanteRoutingApi.AddTxLabel("DESKTOP-VSC", 3, "TEST-LABEL");
+            using var device = await GetInitializedDeviceAsync("DESKTOP-VSC", TimeSpan.FromSeconds(3));
+
+            device.AddTxLabel(3, "TEST-LABEL");
         }
 
         [TestMethod]
-        public void SetRxChannelNameTest()
+        public async Task SetRxChannelNameTest()
         {
-            DanteRoutingApi.SetRxChannelName("DESKTOP-VSC", 3, "TEST-CHANNEL-NAME");
+            using var device = await GetInitializedDeviceAsync("DESKTOP-VSC", TimeSpan.FromSeconds(3));
+
+            device.SetRxChannelName(3, "TEST-CHANNEL-NAME");
         }
 
         [TestMethod]
-        public void SetSxChannelNameTest()
+        public async Task SetSxChannelNameTest()
         {
-            DanteRoutingApi.SetSxChannelName("DESKTOP-VSC", 3, "TEST-CHANNEL-NAME");
+            using var device = await GetInitializedDeviceAsync("DESKTOP-VSC", TimeSpan.FromSeconds(3));
+
+            device.SetSxChannelName(3, "TEST-CHANNEL-NAME");
+        }
+
+        private static async Task<RoutingDevice> GetInitializedDeviceAsync(
+            string name,
+            TimeSpan? delay = null,
+            CancellationToken cancellationToken = default)
+        {
+            var device = new RoutingDevice(name);
+            device.StepOccurred += (_, args) =>
+            {
+                Console.WriteLine($"{name} StepOccurred");
+            };
+            device.EventOccurred += (_, text) =>
+            {
+                Console.WriteLine($"{name} EventOccurred: {text}");
+            };
+            device.DomainEventOccurred += (_, text) =>
+            {
+                Console.WriteLine($"{name} DomainEventOccurred: {text}");
+            };
+
+            device.Initialize();
+
+            await Task.Delay(delay ?? TimeSpan.Zero, cancellationToken);
+
+            return device;
         }
     }
 }

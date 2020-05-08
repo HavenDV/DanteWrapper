@@ -25,6 +25,20 @@ namespace DanteWrapperLibrary
             StepOccurred?.Invoke(this, EventArgs.Empty);
         }
 
+        public event EventHandler<string>? EventOccurred;
+
+        private void OnEventOccurred(string value)
+        {
+            EventOccurred?.Invoke(null, value);
+        }
+
+        public event EventHandler<string>? DomainEventOccurred;
+
+        private void OnDomainEventOccurred(string value)
+        {
+            DomainEventOccurred?.Invoke(null, value);
+        }
+
         #endregion
 
         #region Constructors
@@ -46,6 +60,21 @@ namespace DanteWrapperLibrary
             }
 
             IntPtr = DanteRoutingApi.OpenDevice(Name);
+
+            DanteRoutingApi.DeviceEventOccurred += (sender, tuple) =>
+            {
+                if (tuple.name == Name)
+                {
+                    OnEventOccurred(tuple.text);
+                }
+            };
+            DanteRoutingApi.DomainEventOccurred += (sender, text) =>
+            {
+                OnDomainEventOccurred(text);
+            };
+
+            DanteRoutingApi.InitializeDomainEvents();
+            DanteRoutingApi.InitializeDeviceEvents();
 
             TaskWorker.Start(cancellationToken =>
             {
