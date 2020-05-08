@@ -209,20 +209,20 @@ namespace DanteWrapperLibrary
 
         #region Events
 
-        public static event EventHandler<string>? EventOccurred;
+        public static event EventHandler<string>? DomainEventOccurred;
 
-        private static void OnEventOccurred(string value)
+        private static void OnDomainEventOccurred(string value)
         {
-            EventOccurred?.Invoke(null, value);
+            DomainEventOccurred?.Invoke(null, value);
         }
 
         #endregion
 
         #region Methods
 
-        public static void InitializeEvents()
+        public static void InitializeDomainEvents()
         {
-            SetEventCallback(OnEventOccurred);
+            SetEventCallback(OnDomainEventOccurred);
         }
 
         public static void SetRxChannelName(string deviceName, int number, string name)

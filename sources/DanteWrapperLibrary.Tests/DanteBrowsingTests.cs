@@ -17,11 +17,11 @@ namespace DanteWrapperLibrary.Tests
         [TestMethod]
         public async Task RoutingDeviceTest()
         {
-            DanteRoutingApi.EventOccurred += (_, text) =>
+            DanteRoutingApi.DomainEventOccurred += (_, text) =>
             {
-                Console.WriteLine($"EventOccurred: {text}");
+                Console.WriteLine($"DomainEventOccurred: {text}");
             };
-            DanteRoutingApi.InitializeEvents();
+            DanteRoutingApi.InitializeDomainEvents();
 
             using var device = new RoutingDevice("DESKTOP-VSC");
             device.StepOccurred += (sender, args) =>
