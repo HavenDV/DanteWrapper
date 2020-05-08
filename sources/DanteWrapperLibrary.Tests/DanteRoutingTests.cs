@@ -55,6 +55,17 @@ namespace DanteWrapperLibrary.Tests
         }
 
         [TestMethod]
+        public async Task MultiDeviceTest2()
+        {
+            {
+                using var device1 = await GetInitializedDeviceAsync("DESKTOP-VSC", TimeSpan.FromSeconds(3));
+            }
+            {
+                using var device2 = await GetInitializedDeviceAsync("test device", TimeSpan.FromSeconds(3));
+            }
+        }
+
+        [TestMethod]
         public async Task GetRxChannelsTest()
         {
             using var device = await GetInitializedDeviceAsync("DESKTOP-VSC", TimeSpan.FromSeconds(3));

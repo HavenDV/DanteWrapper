@@ -273,8 +273,8 @@ dr_test_set_current_domain_by_name
 }
 #endif
 
-typedef void (CALLBACK* ON_DOMAIN_EVENT_CALLBACK)(const char* text);
-typedef void (CALLBACK* ON_DEVICE_EVENT_CALLBACK)(const char* name, const char* text);
+typedef void (CALLBACK* ON_DOMAIN_EVENT_CALLBACK)(void* test, const char* text);
+typedef void (CALLBACK* ON_DEVICE_EVENT_CALLBACK)(void* test, const char* name, const char* text);
 
 ON_DOMAIN_EVENT_CALLBACK domain_event_callback;
 ON_DEVICE_EVENT_CALLBACK device_event_callback;
@@ -285,7 +285,7 @@ void send_changes_to_callback(const ddh_changes_t* changes)
 	char buf[256];
 	ddh_change_flags_t change_flags = ddh_changes_get_change_flags(changes);
 	dante_domain_handler_t* handler = ddh_changes_get_domain_handler(changes);
-	
+
 	snprintf(line, 4096, "Domain Hander Event:\n");
 	snprintf(line + strlen(line), 4096, "  Flags: %s\n", ddh_change_flags_to_string(change_flags, buf, sizeof(buf)));
 	if (change_flags & DDH_CHANGE_FLAG_ERROR)
@@ -327,7 +327,8 @@ void send_changes_to_callback(const ddh_changes_t* changes)
 #endif
 	snprintf(line + strlen(line), 4096, "\n");
 
-	(*domain_event_callback)(line);
+	void* test = dante_domain_handler_get_context(handler);
+	(*domain_event_callback)(test, line);
 }
 
 void dr_test_event_handle_ddh_changes
@@ -2331,7 +2332,7 @@ dr_test_on_device_changed
 		dr_devices_num_requests_pending(test->devices),
 		dr_devices_get_request_limit(test->devices));
 
-	(*device_event_callback)(dr_device_get_name(device), line);
+	(*device_event_callback)(test, dr_device_get_name(device), line);
 }
 
 //----------------------------------------------------------
@@ -3791,8 +3792,8 @@ __declspec(dllexport) int step
 	/*[in/out]*/ dr_test_t** test
 )
 {
-	//(*domain_event_callback)("domain event");
-	//(*device_event_callback)("DESKTOP-VSC", "device event");
+	//(*domain_event_callback)(*test, "domain event");
+	//(*device_event_callback)(*test, "DESKTOP-VSC", "device event");
 
 	return dapi_utils_step((*test)->runtime, AUD_SOCKET_INVALID, NULL);
 }

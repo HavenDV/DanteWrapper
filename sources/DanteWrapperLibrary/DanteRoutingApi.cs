@@ -20,8 +20,8 @@ namespace DanteWrapperLibrary
             ref IntPtr ptr
         );
 
-        internal delegate void DomainEventCallbackDelegate(string text);
-        internal delegate void DeviceEventCallbackDelegate(string name, string text);
+        internal delegate void DomainEventCallbackDelegate(IntPtr ptr, string text);
+        internal delegate void DeviceEventCallbackDelegate(IntPtr ptr, string name, string text);
 
         [DllImport("dante_routing_test.dll", EntryPoint = "set_domain_event_callback", CallingConvention = CallingConvention.Cdecl)]
         private static extern void SetDomainEventCallback(
@@ -52,16 +52,16 @@ namespace DanteWrapperLibrary
 
         public static event EventHandler<string>? DomainEventOccurred;
 
-        private static void OnDomainEventOccurred(string value)
+        private static void OnDomainEventOccurred(IntPtr ptr, string text)
         {
-            DomainEventOccurred?.Invoke(null, value);
+            DomainEventOccurred?.Invoke(ptr, text);
         }
 
         public static event EventHandler<(string name, string text)>? DeviceEventOccurred;
 
-        private static void OnDeviceEventOccurred(string name, string text)
+        private static void OnDeviceEventOccurred(IntPtr ptr, string name, string text)
         {
-            DeviceEventOccurred?.Invoke(null, (name, text));
+            DeviceEventOccurred?.Invoke(ptr, (name, text));
         }
 
         #endregion

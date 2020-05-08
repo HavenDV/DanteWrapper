@@ -63,14 +63,17 @@ namespace DanteWrapperLibrary
 
             DanteRoutingApi.DeviceEventOccurred += (sender, tuple) =>
             {
-                if (tuple.name == Name)
+                if (IntPtr != IntPtr.Zero && sender is IntPtr intPtr && intPtr == IntPtr && tuple.name == Name)
                 {
                     OnEventOccurred(tuple.text);
                 }
             };
             DanteRoutingApi.DomainEventOccurred += (sender, text) =>
             {
-                OnDomainEventOccurred(text);
+                if (IntPtr != IntPtr.Zero && sender is IntPtr intPtr && intPtr == IntPtr)
+                {
+                    OnDomainEventOccurred(text);
+                }
             };
 
             DanteRoutingApi.InitializeDomainEvents();
