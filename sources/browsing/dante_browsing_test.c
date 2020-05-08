@@ -861,6 +861,16 @@ db_browse_test_process_line(
 	}
 	else if (sscanf(buf, "%c %c", &in_action, &in_type) == 2 && in_action == 'r' && in_type == 'd')
 	{
+		/*
+		uint16_t ii;
+		set_output_array_length(sizeof(char*), 3, array, count);
+		for (ii = 0; ii < 3; ii++)
+		{
+			copy_string_to_output_array(ii, "test name", array);
+		}
+		return AUD_SUCCESS;
+		*/
+
 		unsigned int i;
 		const db_browse_network_t * network = db_browse_get_network(test->browse);
 
@@ -972,6 +982,46 @@ db_browse_test_process_line(
 #endif
 	else if (buf[0] == 'p')
 	{
+		/*
+		uint16_t ii, jj;
+		set_output_array_length(sizeof(sdp_descriptor_info_t), 3, array, count);
+		for (ii = 0; ii < 3; ii++)
+		{
+			sdp_descriptor_info_t info;
+			memset(&info, 0, sizeof(sdp_descriptor_info_t));
+			info.username = "test username";
+			info.session_name = "test session name";
+			info.session_id = ii;
+			info.session_originator_address = "test address";
+			info.is_dante = ii;
+			info.media_clock_offset = ii;
+			info.stream_payload_type = (uint8_t)ii;
+
+			set_output_array_length(sizeof(sdp_descriptor_group_info_t), 3, &info.groups, &info.groups_count);
+			for (jj = 0; jj < 3; jj++)
+			{
+				sdp_descriptor_group_info_t group_info;
+				memset(&info, 0, sizeof(sdp_descriptor_group_info_t));
+
+				group_info.address = "test address";
+				group_info.port = jj;
+				group_info.id = "test id";
+
+				copy_to_output_array(jj, &group_info, sizeof(sdp_descriptor_group_info_t), &info.groups);
+			}
+
+			info.gmid = "test gmid";
+			info.sub_domain = "test sub_domain";
+			info.stream_sample_rate = ii;
+			info.stream_encoding = ii;
+			info.stream_num_chans = ii;
+			info.stream_dir = ii;
+
+			copy_to_output_array(ii, &info, sizeof(sdp_descriptor_info_t), array);
+		}
+		return AUD_SUCCESS;
+		*/
+
 		unsigned n = db_browse_get_num_sdp_descriptors(test->browse);
 		if (n == 0)
 		{
