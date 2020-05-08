@@ -3612,7 +3612,7 @@ cleanup:
 	return result;
 }
 
-__declspec(dllexport) void close
+__declspec(dllexport) void close_device
 (
 	/*[in/out]*/ dr_test_t** test
 )
@@ -3631,7 +3631,7 @@ __declspec(dllexport) void close
 	}
 }
 
-__declspec(dllexport) int open
+__declspec(dllexport) int open_device
 (
 	/*[in]*/ int argc,
 	/*[in]*/ char* argv[],
@@ -3781,7 +3781,7 @@ __declspec(dllexport) int open
 	return result;
 
 cleanup:
-	close(test);
+	close_device(test);
 
 	return result;
 }

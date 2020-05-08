@@ -8,8 +8,8 @@ namespace DanteWrapperLibrary
     {
         #region Imports
 
-        [DllImport("dante_routing_test.dll", EntryPoint = "open", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int Open(
+        [DllImport("dante_routing_test.dll", EntryPoint = "open_device", CallingConvention = CallingConvention.Cdecl)]
+        private static extern int OpenDevice(
             int argc,
             string[] argv,
             out IntPtr ptr
@@ -41,8 +41,8 @@ namespace DanteWrapperLibrary
             out int count
         );
 
-        [DllImport("dante_routing_test.dll", EntryPoint = "close", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void Close(
+        [DllImport("dante_routing_test.dll", EntryPoint = "close_device", CallingConvention = CallingConvention.Cdecl)]
+        private static extern void CloseDevice(
             ref IntPtr ptr
         );
 
@@ -101,7 +101,7 @@ namespace DanteWrapperLibrary
         /// <returns></returns>
         internal static IntPtr OpenDevice(string name)
         {
-            CheckResult(Open(2, new[] { "DanteRoutingWrapper", name }, out var ptr));
+            CheckResult(OpenDevice(2, new[] { "DanteRoutingWrapper", name }, out var ptr));
 
             return ptr;
         }
@@ -176,7 +176,7 @@ namespace DanteWrapperLibrary
         {
             try
             {
-                Close(ref ptr);
+                CloseDevice(ref ptr);
             }
             finally
             {
