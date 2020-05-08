@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -80,7 +81,17 @@ namespace DanteWrapperLibrary.Tests
         {
             foreach (var name in DanteBrowsing.GetDeviceNames())
             {
-                Console.WriteLine(name);
+                ShowProperties(name);
+            }
+        }
+
+        [TestMethod]
+        public void GetSdpDescriptorsTest()
+        {
+            foreach (var info in DanteBrowsing.GetSdpDescriptors())
+            {
+                ShowProperties(info);
+                Console.WriteLine();
             }
         }
 
@@ -153,5 +164,37 @@ namespace DanteWrapperLibrary.Tests
         {
             DanteRouting.SetSxChannelName("DESKTOP-VSC", 3, "TEST-CHANNEL-NAME");
         }
+
+        #region Utilities
+
+        private static void ShowProperties(object obj, string? prefix = null)
+        {
+            if (obj is string stringValue)
+            {
+                Console.WriteLine(stringValue);
+                return;
+            }
+
+            foreach (var info in obj.GetType().GetProperties())
+            {
+                var value = info.GetValue(obj);
+                if (!(value is string) &&
+                    value is IEnumerable enumerable)
+                {
+                    Console.WriteLine($"{info.Name}:");
+                    foreach (var subValue in enumerable)
+                    {
+                        ShowProperties(subValue, " - ");
+                        Console.WriteLine();
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"{prefix}{info.Name}: {value}");
+                }
+            }
+        }
+
+        #endregion
     }
 }
