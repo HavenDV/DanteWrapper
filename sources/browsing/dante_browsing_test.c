@@ -1023,6 +1023,7 @@ db_browse_test_process_line(
 		*/
 
 		unsigned n = db_browse_get_num_sdp_descriptors(test->browse);
+		set_output_array_length(sizeof(sdp_descriptor_info_t), n, array, count);
 		if (n == 0)
 		{
 			fputs("No AES67 flows discovered\n", stdout);
@@ -1030,7 +1031,6 @@ db_browse_test_process_line(
 		else
 		{
 			unsigned i;
-			set_output_array_length(sizeof(char*), n, array, count);
 			for (i = 0; i < n; i++)
 			{
 				const dante_sdp_descriptor_t * sdp =
